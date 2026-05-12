@@ -255,3 +255,36 @@ textarea {
     gap: 12px;
   }
 }
+
+.card-actions {
+  margin-top: 14px;
+}
+
+.results-section {
+  margin-top: 28px;
+}
+
+.results-list {
+  display: grid;
+  gap: 16px;
+}
+
+.result-card {
+  border: 1px solid #e5e8e8;
+  border-radius: 10px;
+  background: #fbfcfc;
+  padding: 16px;
+}
+
+.result-card h3 {
+  margin-top: 0;
+}
+
+.result-card pre {
+  background: #17202a;
+  color: #f8f9f9;
+  padding: 14px;
+  border-radius: 8px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
