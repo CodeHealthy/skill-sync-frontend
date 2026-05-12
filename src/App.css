@@ -288,3 +288,31 @@ textarea {
   overflow-x: auto;
   white-space: pre-wrap;
 }
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.dashboard-sections {
+  display: grid;
+  gap: 24px;
+  margin-top: 28px;
+}
+
+.candidate-card pre {
+  background: #17202a;
+  color: #f8f9f9;
+  padding: 14px;
+  border-radius: 8px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 1000px) {
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,64 +1,70 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axiosClient from "../api/axiosClient";
 import { useAuth } from "../auth/AuthContext";
 
 function CandidateDashboard() {
     const { user } = useAuth();
 
-    const [candidateId, setCandidateId] = useState("");
-
-    const [testResult, setTestResult] = useState({
-        testName: "Java Basics Challenge",
-        score: 85,
-        status: "Passed",
-        answers:
-            "public class Main {\n  public static void main(String[] args) {\n    System.out.println(\"Hello SkillSync\");\n  }\n}",
-    });
-
+    const [assignments, setAssignments] = useState([]);
+    const [answers, setAnswers] = useState({});
     const [error, setError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
-    const [submitting, setSubmitting] = useState(false);
 
-    const handleChange = (event) => {
-        setTestResult((current) => ({
-            ...current,
-            [event.target.name]: event.target.value,
-        }));
-    };
-
-    const handleSubmitResult = async (event) => {
-        event.preventDefault();
-
+    const fetchAssignments = async () => {
         setError("");
-        setSuccessMessage("");
-
-        if (!candidateId.trim()) {
-            setError("Candidate ID is required for this temporary test.");
-            return;
-        }
-
-        setSubmitting(true);
 
         try {
-            await axiosClient.post(`/candidates/${candidateId}/test-results`, {
-                ...testResult,
-                score: Number(testResult.score),
-            });
-
-            setSuccessMessage("Test result submitted successfully.");
-
-            setTestResult((current) => ({
-                ...current,
-                answers: "",
-            }));
+            const response = await axiosClient.get("/assessments/my-assignments");
+            setAssignments(response.data);
         } catch (err) {
             setError(
                 err.response?.data?.message ||
                 err.response?.data?.error ||
-                "Failed to submit test result"
+                "Failed to load assignments"
             );
-        } finally {
-            setSubmitting(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchAssignments();
+    }, []);
+
+    const handleAnswerChange = (assignmentId, value) => {
+        setAnswers((current) => ({
+            ...current,
+            [assignmentId]: value,
+        }));
+    };
+
+    const handleSubmit = async (assignmentId) => {
+        setError("");
+        setSuccessMessage("");
+
+        const submittedAnswer = answers[assignmentId];
+
+        if (!submittedAnswer || !submittedAnswer.trim()) {
+            setError("Please enter your answer before submitting.");
+            return;
+        }
+
+        try {
+            await axiosClient.post(`/assessments/assignments/${assignmentId}/submit`, {
+                submittedAnswer,
+            });
+
+            setSuccessMessage("Assessment submitted successfully.");
+            setAnswers((current) => ({
+                ...current,
+                [assignmentId]: "",
+            }));
+
+            fetchAssignments();
+        } catch (err) {
+            setError(
+                err.response?.data?.message ||
+                err.response?.data?.error ||
+                "Failed to submit assessment"
+            );
         }
     };
 
@@ -67,76 +73,80 @@ function CandidateDashboard() {
             <div className="dashboard-header">
                 <div>
                     <h1>Candidate Portal</h1>
-                    <p>Welcome, {user?.fullName}. Submit your challenge result here.</p>
+                    <p>Welcome, {user?.fullName}. View and submit assigned assessments.</p>
                 </div>
+
+                <button className="secondary-button" onClick={fetchAssignments}>
+                    Refresh
+                </button>
             </div>
 
             {error && <div className="error-box">{error}</div>}
             {successMessage && <div className="success-box">{successMessage}</div>}
 
-            <div className="form-card wide-card">
-                <h2>Submit Test Result</h2>
+            <div className="list-card">
+                <h2>My Assignments</h2>
 
-                <p>
-                    For now, paste the candidate ID created by the admin. Later, this will
-                    be replaced by assigned tests linked directly to the logged-in
-                    candidate.
-                </p>
+                {assignments.length === 0 && (
+                    <p>No assessments have been assigned to you yet.</p>
+                )}
 
-                <form onSubmit={handleSubmitResult}>
-                    <label>Candidate ID</label>
-                    <input
-                        type="text"
-                        value={candidateId}
-                        onChange={(event) => setCandidateId(event.target.value)}
-                        placeholder="Paste candidate ID from Admin Dashboard"
-                        required
-                    />
+                <div className="candidate-list">
+                    {assignments.map((assignment) => (
+                        <div className="candidate-card" key={assignment.id}>
+                            <h3>{assignment.assessmentTitle}</h3>
 
-                    <label>Test Name</label>
-                    <input
-                        name="testName"
-                        type="text"
-                        value={testResult.testName}
-                        onChange={handleChange}
-                        required
-                    />
+                            <p>
+                                <strong>Status:</strong> {assignment.status}
+                            </p>
 
-                    <label>Score</label>
-                    <input
-                        name="score"
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={testResult.score}
-                        onChange={handleChange}
-                        required
-                    />
+                            <p>
+                                <strong>Assigned At:</strong>{" "}
+                                {assignment.assignedAt
+                                    ? new Date(assignment.assignedAt).toLocaleString()
+                                    : "N/A"}
+                            </p>
 
-                    <label>Status</label>
-                    <select
-                        name="status"
-                        value={testResult.status}
-                        onChange={handleChange}
-                    >
-                        <option value="Pending">Pending</option>
-                        <option value="Passed">Passed</option>
-                        <option value="Failed">Failed</option>
-                    </select>
+                            {assignment.status === "ASSIGNED" && (
+                                <>
+                                    <label>Your Answer / Code Submission</label>
+                                    <textarea
+                                        rows="10"
+                                        value={answers[assignment.id] || ""}
+                                        onChange={(event) =>
+                                            handleAnswerChange(assignment.id, event.target.value)
+                                        }
+                                        placeholder="Write your answer or code here"
+                                    />
 
-                    <label>Answers / Code Submission</label>
-                    <textarea
-                        name="answers"
-                        value={testResult.answers}
-                        onChange={handleChange}
-                        rows="10"
-                        placeholder="Paste your code or quiz answers here"
-                    />
+                                    <button
+                                        className="primary-button"
+                                        onClick={() => handleSubmit(assignment.id)}
+                                    >
+                                        Submit Assessment
+                                    </button>
+                                </>
+                            )}
 
-                    <button type="submit" className="primary-button" disabled={submitting}>
-                        {submitting ? "Submitting..." : "Submit Result"}
-                    </button>
-                </form>
+                            {assignment.status !== "ASSIGNED" && (
+                                <>
+                                    <p>
+                                        <strong>Submitted At:</strong>{" "}
+                                        {assignment.submittedAt
+                                            ? new Date(assignment.submittedAt).toLocaleString()
+                                            : "N/A"}
+                                    </p>
+
+                                    <p>
+                                        <strong>Your Submission:</strong>
+                                    </p>
+
+                                    <pre>{assignment.submittedAnswer}</pre>
+                                </>
+                            )}
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
     );
