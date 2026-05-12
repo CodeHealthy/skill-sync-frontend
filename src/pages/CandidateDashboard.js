@@ -7,6 +7,7 @@ function CandidateDashboard() {
 
     const [assignments, setAssignments] = useState([]);
     const [answers, setAnswers] = useState({});
+    const [codes, setCodes] = useState({});
     const [error, setError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
 
@@ -16,6 +17,21 @@ function CandidateDashboard() {
         try {
             const response = await axiosClient.get("/assessments/my-assignments");
             setAssignments(response.data);
+
+            const initialCodes = {};
+            response.data.forEach((assignment) => {
+                if (
+                    assignment.assessmentType === "CODING_CHALLENGE" &&
+                    assignment.status === "ASSIGNED"
+                ) {
+                    initialCodes[assignment.id] = assignment.starterCode || "";
+                }
+            });
+
+            setCodes((current) => ({
+                ...initialCodes,
+                ...current,
+            }));
         } catch (err) {
             setError(
                 err.response?.data?.message ||
@@ -36,27 +52,48 @@ function CandidateDashboard() {
         }));
     };
 
-    const handleSubmit = async (assignmentId) => {
+    const handleCodeChange = (assignmentId, value) => {
+        setCodes((current) => ({
+            ...current,
+            [assignmentId]: value,
+        }));
+    };
+
+    const handleSubmit = async (assignment) => {
         setError("");
         setSuccessMessage("");
 
-        const submittedAnswer = answers[assignmentId];
+        const isCodingChallenge = assignment.assessmentType === "CODING_CHALLENGE";
 
-        if (!submittedAnswer || !submittedAnswer.trim()) {
+        const payload = isCodingChallenge
+            ? {
+                submittedCode: codes[assignment.id],
+            }
+            : {
+                submittedAnswer: answers[assignment.id],
+            };
+
+        if (isCodingChallenge && (!payload.submittedCode || !payload.submittedCode.trim())) {
+            setError("Please enter your code before submitting.");
+            return;
+        }
+
+        if (!isCodingChallenge && (!payload.submittedAnswer || !payload.submittedAnswer.trim())) {
             setError("Please enter your answer before submitting.");
             return;
         }
 
         try {
-            await axiosClient.post(`/assessments/assignments/${assignmentId}/submit`, {
-                submittedAnswer,
-            });
+            await axiosClient.post(
+                `/assessments/assignments/${assignment.id}/submit`,
+                payload
+            );
 
             setSuccessMessage("Assessment submitted successfully.");
 
             setAnswers((current) => ({
                 ...current,
-                [assignmentId]: "",
+                [assignment.id]: "",
             }));
 
             fetchAssignments();
@@ -102,32 +139,83 @@ function CandidateDashboard() {
                             </p>
 
                             <p>
+                                <strong>Type:</strong> {assignment.assessmentType}
+                            </p>
+
+                            <p>
+                                <strong>Language:</strong> {assignment.language}
+                            </p>
+
+                            <p>
+                                <strong>Execution Status:</strong>{" "}
+                                {assignment.executionStatus || "NOT_RUN"}
+                            </p>
+
+                            <p>
                                 <strong>Assigned At:</strong>{" "}
                                 {assignment.assignedAt
                                     ? new Date(assignment.assignedAt).toLocaleString()
                                     : "N/A"}
                             </p>
 
-                            {assignment.status === "ASSIGNED" && (
-                                <>
-                                    <label>Your Answer / Code Submission</label>
-                                    <textarea
-                                        rows="10"
-                                        value={answers[assignment.id] || ""}
-                                        onChange={(event) =>
-                                            handleAnswerChange(assignment.id, event.target.value)
-                                        }
-                                        placeholder="Write your answer or code here"
-                                    />
+                            <p>
+                                <strong>Prompt:</strong>
+                            </p>
+                            <pre>{assignment.prompt}</pre>
 
-                                    <button
-                                        className="primary-button"
-                                        onClick={() => handleSubmit(assignment.id)}
-                                    >
-                                        Submit Assessment
-                                    </button>
+                            {assignment.expectedOutput && (
+                                <>
+                                    <p>
+                                        <strong>Expected Output:</strong>
+                                    </p>
+                                    <pre>{assignment.expectedOutput}</pre>
                                 </>
                             )}
+
+                            {assignment.status === "ASSIGNED" &&
+                                assignment.assessmentType === "CODING_CHALLENGE" && (
+                                    <>
+                                        <label>Your Code</label>
+                                        <textarea
+                                            rows="14"
+                                            className="code-textarea"
+                                            value={codes[assignment.id] || ""}
+                                            onChange={(event) =>
+                                                handleCodeChange(assignment.id, event.target.value)
+                                            }
+                                            placeholder="Write your code here"
+                                        />
+
+                                        <button
+                                            className="primary-button"
+                                            onClick={() => handleSubmit(assignment)}
+                                        >
+                                            Submit Code
+                                        </button>
+                                    </>
+                                )}
+
+                            {assignment.status === "ASSIGNED" &&
+                                assignment.assessmentType === "QUIZ" && (
+                                    <>
+                                        <label>Your Answer</label>
+                                        <textarea
+                                            rows="8"
+                                            value={answers[assignment.id] || ""}
+                                            onChange={(event) =>
+                                                handleAnswerChange(assignment.id, event.target.value)
+                                            }
+                                            placeholder="Write your answer here"
+                                        />
+
+                                        <button
+                                            className="primary-button"
+                                            onClick={() => handleSubmit(assignment)}
+                                        >
+                                            Submit Answer
+                                        </button>
+                                    </>
+                                )}
 
                             {assignment.status !== "ASSIGNED" && (
                                 <>
@@ -138,11 +226,23 @@ function CandidateDashboard() {
                                             : "N/A"}
                                     </p>
 
-                                    <p>
-                                        <strong>Your Submission:</strong>
-                                    </p>
+                                    {assignment.submittedAnswer && (
+                                        <>
+                                            <p>
+                                                <strong>Your Submission:</strong>
+                                            </p>
+                                            <pre>{assignment.submittedAnswer}</pre>
+                                        </>
+                                    )}
 
-                                    <pre>{assignment.submittedAnswer}</pre>
+                                    {assignment.submittedCode && (
+                                        <>
+                                            <p>
+                                                <strong>Your Code:</strong>
+                                            </p>
+                                            <pre>{assignment.submittedCode}</pre>
+                                        </>
+                                    )}
                                 </>
                             )}
 

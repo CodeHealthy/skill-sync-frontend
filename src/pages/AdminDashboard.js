@@ -14,8 +14,12 @@ function AdminDashboard() {
         title: "",
         description: "",
         type: "CODING_CHALLENGE",
+        language: "JAVA",
         maxScore: 100,
         prompt: "",
+        starterCode:
+            'public class Main {\n  public static void main(String[] args) {\n    System.out.println("Hello SkillSync");\n  }\n}',
+        expectedOutput: "Hello SkillSync",
     });
 
     const [assignForm, setAssignForm] = useState({
@@ -67,10 +71,30 @@ function AdminDashboard() {
     };
 
     const handleAssessmentChange = (event) => {
-        setAssessmentForm((current) => ({
-            ...current,
-            [event.target.name]: event.target.value,
-        }));
+        const { name, value } = event.target;
+
+        setAssessmentForm((current) => {
+            const updated = {
+                ...current,
+                [name]: value,
+            };
+
+            if (name === "type" && value === "QUIZ") {
+                updated.language = "TEXT";
+                updated.starterCode = "";
+                updated.expectedOutput = "";
+            }
+
+            if (name === "type" && value === "CODING_CHALLENGE") {
+                updated.language = current.language === "TEXT" ? "JAVA" : current.language;
+            }
+
+            if (name === "language") {
+                updated.starterCode = getDefaultStarterCode(value);
+            }
+
+            return updated;
+        });
     };
 
     const handleAssignChange = (event) => {
@@ -129,8 +153,11 @@ function AdminDashboard() {
                 title: "",
                 description: "",
                 type: "CODING_CHALLENGE",
+                language: "JAVA",
                 maxScore: 100,
                 prompt: "",
+                starterCode: getDefaultStarterCode("JAVA"),
+                expectedOutput: "Hello SkillSync",
             });
 
             setSuccessMessage("Assessment created successfully.");
@@ -278,6 +305,21 @@ function AdminDashboard() {
                             <option value="QUIZ">Quiz</option>
                         </select>
 
+                        {assessmentForm.type === "CODING_CHALLENGE" && (
+                            <>
+                                <label>Language</label>
+                                <select
+                                    name="language"
+                                    value={assessmentForm.language}
+                                    onChange={handleAssessmentChange}
+                                >
+                                    <option value="JAVA">Java</option>
+                                    <option value="JAVASCRIPT">JavaScript</option>
+                                    <option value="PYTHON">Python</option>
+                                </select>
+                            </>
+                        )}
+
                         <label>Max Score</label>
                         <input
                             name="maxScore"
@@ -296,6 +338,26 @@ function AdminDashboard() {
                             onChange={handleAssessmentChange}
                             required
                         />
+
+                        {assessmentForm.type === "CODING_CHALLENGE" && (
+                            <>
+                                <label>Starter Code</label>
+                                <textarea
+                                    name="starterCode"
+                                    rows="8"
+                                    value={assessmentForm.starterCode}
+                                    onChange={handleAssessmentChange}
+                                />
+
+                                <label>Expected Output</label>
+                                <textarea
+                                    name="expectedOutput"
+                                    rows="3"
+                                    value={assessmentForm.expectedOutput}
+                                    onChange={handleAssessmentChange}
+                                />
+                            </>
+                        )}
 
                         <button className="primary-button" type="submit">
                             Create Assessment
@@ -332,7 +394,7 @@ function AdminDashboard() {
                             <option value="">Select assessment</option>
                             {assessments.map((assessment) => (
                                 <option value={assessment.id} key={assessment.id}>
-                                    {assessment.title}
+                                    {assessment.title} ({assessment.type})
                                 </option>
                             ))}
                         </select>
@@ -375,9 +437,29 @@ function AdminDashboard() {
                                     <strong>Type:</strong> {assessment.type}
                                 </p>
                                 <p>
+                                    <strong>Language:</strong> {assessment.language}
+                                </p>
+                                <p>
                                     <strong>Max Score:</strong> {assessment.maxScore}
                                 </p>
+                                <p>
+                                    <strong>Prompt:</strong>
+                                </p>
                                 <pre>{assessment.prompt}</pre>
+
+                                {assessment.type === "CODING_CHALLENGE" && (
+                                    <>
+                                        <p>
+                                            <strong>Starter Code:</strong>
+                                        </p>
+                                        <pre>{assessment.starterCode}</pre>
+
+                                        <p>
+                                            <strong>Expected Output:</strong>
+                                        </p>
+                                        <pre>{assessment.expectedOutput}</pre>
+                                    </>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -402,7 +484,20 @@ function AdminDashboard() {
                                 </p>
 
                                 <p>
+                                    <strong>Type:</strong> {assignment.assessmentType}
+                                </p>
+
+                                <p>
+                                    <strong>Language:</strong> {assignment.language}
+                                </p>
+
+                                <p>
                                     <strong>Status:</strong> {assignment.status}
+                                </p>
+
+                                <p>
+                                    <strong>Execution Status:</strong>{" "}
+                                    {assignment.executionStatus || "NOT_RUN"}
                                 </p>
 
                                 {assignment.submittedAt && (
@@ -418,6 +513,15 @@ function AdminDashboard() {
                                             <strong>Submitted Answer:</strong>
                                         </p>
                                         <pre>{assignment.submittedAnswer}</pre>
+                                    </>
+                                )}
+
+                                {assignment.submittedCode && (
+                                    <>
+                                        <p>
+                                            <strong>Submitted Code:</strong>
+                                        </p>
+                                        <pre>{assignment.submittedCode}</pre>
                                     </>
                                 )}
 
@@ -487,6 +591,22 @@ function AdminDashboard() {
             </div>
         </div>
     );
+}
+
+function getDefaultStarterCode(language) {
+    if (language === "JAVA") {
+        return 'public class Main {\n  public static void main(String[] args) {\n    System.out.println("Hello SkillSync");\n  }\n}';
+    }
+
+    if (language === "JAVASCRIPT") {
+        return 'console.log("Hello SkillSync");';
+    }
+
+    if (language === "PYTHON") {
+        return 'print("Hello SkillSync")';
+    }
+
+    return "";
 }
 
 export default AdminDashboard;
