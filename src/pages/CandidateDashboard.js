@@ -53,6 +53,7 @@ function CandidateDashboard() {
             });
 
             setSuccessMessage("Assessment submitted successfully.");
+
             setAnswers((current) => ({
                 ...current,
                 [assignmentId]: "",
@@ -143,6 +144,25 @@ function CandidateDashboard() {
 
                                     <pre>{assignment.submittedAnswer}</pre>
                                 </>
+                            )}
+
+                            {assignment.status === "SUBMITTED" && (
+                                <div className="pending-grade-box">
+                                    <p>Your submission is waiting for admin review.</p>
+                                </div>
+                            )}
+
+                            {assignment.status === "GRADED" && (
+                                <div className="graded-box">
+                                    <h4>Grade</h4>
+                                    <p>
+                                        <strong>Score:</strong> {assignment.score}
+                                    </p>
+                                    <p>
+                                        <strong>Feedback:</strong>{" "}
+                                        {assignment.feedback || "No feedback provided"}
+                                    </p>
+                                </div>
                             )}
                         </div>
                     ))}

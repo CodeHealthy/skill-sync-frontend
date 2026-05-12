@@ -23,6 +23,8 @@ function AdminDashboard() {
         assessmentId: "",
     });
 
+    const [gradeForms, setGradeForms] = useState({});
+
     const [candidates, setCandidates] = useState([]);
     const [assessments, setAssessments] = useState([]);
     const [assignments, setAssignments] = useState([]);
@@ -75,6 +77,16 @@ function AdminDashboard() {
         setAssignForm((current) => ({
             ...current,
             [event.target.name]: event.target.value,
+        }));
+    };
+
+    const handleGradeChange = (assignmentId, field, value) => {
+        setGradeForms((current) => ({
+            ...current,
+            [assignmentId]: {
+                ...current[assignmentId],
+                [field]: value,
+            },
         }));
     };
 
@@ -156,12 +168,49 @@ function AdminDashboard() {
         }
     };
 
+    const handleGradeAssignment = async (assignmentId) => {
+        setError("");
+        setSuccessMessage("");
+
+        const gradeForm = gradeForms[assignmentId];
+
+        if (!gradeForm || gradeForm.score === undefined || gradeForm.score === "") {
+            setError("Score is required before grading.");
+            return;
+        }
+
+        try {
+            await axiosClient.patch(`/assessments/assignments/${assignmentId}/grade`, {
+                score: Number(gradeForm.score),
+                feedback: gradeForm.feedback || "",
+            });
+
+            setSuccessMessage("Assignment graded successfully.");
+
+            setGradeForms((current) => ({
+                ...current,
+                [assignmentId]: {
+                    score: "",
+                    feedback: "",
+                },
+            }));
+
+            fetchDashboardData();
+        } catch (err) {
+            setError(
+                err.response?.data?.message ||
+                err.response?.data?.error ||
+                "Failed to grade assignment"
+            );
+        }
+    };
+
     return (
         <div className="page-container">
             <div className="dashboard-header">
                 <div>
                     <h1>Admin Dashboard</h1>
-                    <p>Welcome, {user?.fullName}. Create and assign assessments.</p>
+                    <p>Welcome, {user?.fullName}. Create, assign, and grade assessments.</p>
                 </div>
 
                 <button className="secondary-button" onClick={fetchDashboardData}>
@@ -343,15 +392,26 @@ function AdminDashboard() {
                         {assignments.map((assignment) => (
                             <div className="candidate-card" key={assignment.id}>
                                 <h3>{assignment.assessmentTitle}</h3>
+
                                 <p>
                                     <strong>Candidate:</strong> {assignment.candidateName}
                                 </p>
+
                                 <p>
                                     <strong>Email:</strong> {assignment.candidateEmail}
                                 </p>
+
                                 <p>
                                     <strong>Status:</strong> {assignment.status}
                                 </p>
+
+                                {assignment.submittedAt && (
+                                    <p>
+                                        <strong>Submitted At:</strong>{" "}
+                                        {new Date(assignment.submittedAt).toLocaleString()}
+                                    </p>
+                                )}
+
                                 {assignment.submittedAnswer && (
                                     <>
                                         <p>
@@ -359,6 +419,66 @@ function AdminDashboard() {
                                         </p>
                                         <pre>{assignment.submittedAnswer}</pre>
                                     </>
+                                )}
+
+                                {assignment.status === "SUBMITTED" && (
+                                    <div className="grade-box">
+                                        <h4>Grade Submission</h4>
+
+                                        <label>Score</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={gradeForms[assignment.id]?.score || ""}
+                                            onChange={(event) =>
+                                                handleGradeChange(
+                                                    assignment.id,
+                                                    "score",
+                                                    event.target.value
+                                                )
+                                            }
+                                            placeholder="Enter score"
+                                        />
+
+                                        <label>Feedback</label>
+                                        <textarea
+                                            rows="4"
+                                            value={gradeForms[assignment.id]?.feedback || ""}
+                                            onChange={(event) =>
+                                                handleGradeChange(
+                                                    assignment.id,
+                                                    "feedback",
+                                                    event.target.value
+                                                )
+                                            }
+                                            placeholder="Write feedback"
+                                        />
+
+                                        <button
+                                            className="primary-button"
+                                            onClick={() => handleGradeAssignment(assignment.id)}
+                                        >
+                                            Save Grade
+                                        </button>
+                                    </div>
+                                )}
+
+                                {assignment.status === "GRADED" && (
+                                    <div className="graded-box">
+                                        <p>
+                                            <strong>Score:</strong> {assignment.score}
+                                        </p>
+                                        <p>
+                                            <strong>Feedback:</strong>{" "}
+                                            {assignment.feedback || "No feedback provided"}
+                                        </p>
+                                    </div>
+                                )}
+
+                                {assignment.status === "ASSIGNED" && (
+                                    <p className="muted-text">
+                                        Waiting for candidate submission.
+                                    </p>
                                 )}
                             </div>
                         ))}
