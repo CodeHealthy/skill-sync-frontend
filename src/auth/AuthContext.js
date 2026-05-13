@@ -51,12 +51,13 @@ export function AuthProvider({ children }) {
         return authData;
     };
 
-    const register = async ({ fullName, email, password, role }) => {
+    const register = async ({ fullName, email, password, role, organizationName }) => {
         const response = await axiosClient.post("/auth/register", {
             fullName,
             email,
             password,
             role,
+            organizationName,
         });
 
         const authData = response.data;

@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axiosClient from "../api/axiosClient";
 import { useAuth } from "../auth/AuthContext";
+
+const PAGE_SIZE = 8;
 
 function AdminDashboard() {
     const { user } = useAuth();
@@ -33,6 +35,22 @@ function AdminDashboard() {
     const [assessments, setAssessments] = useState([]);
     const [assignments, setAssignments] = useState([]);
 
+    const [candidateSearch, setCandidateSearch] = useState("");
+    const [candidateStatusFilter, setCandidateStatusFilter] = useState("ALL");
+    const [candidatePage, setCandidatePage] = useState(1);
+
+    const [assessmentSearch, setAssessmentSearch] = useState("");
+    const [assessmentTypeFilter, setAssessmentTypeFilter] = useState("ALL");
+    const [assessmentLanguageFilter, setAssessmentLanguageFilter] = useState("ALL");
+    const [assessmentPage, setAssessmentPage] = useState(1);
+
+    const [assignmentSearch, setAssignmentSearch] = useState("");
+    const [assignmentStatusFilter, setAssignmentStatusFilter] = useState("ALL");
+    const [assignmentExecutionFilter, setAssignmentExecutionFilter] = useState("ALL");
+    const [assignmentLanguageFilter, setAssignmentLanguageFilter] = useState("ALL");
+    const [assignmentPage, setAssignmentPage] = useState(1);
+    const [expandedAssignmentId, setExpandedAssignmentId] = useState(null);
+
     const [error, setError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
 
@@ -62,6 +80,125 @@ function AdminDashboard() {
     useEffect(() => {
         fetchDashboardData();
     }, []);
+
+    useEffect(() => {
+        setCandidatePage(1);
+    }, [candidateSearch, candidateStatusFilter]);
+
+    useEffect(() => {
+        setAssessmentPage(1);
+    }, [assessmentSearch, assessmentTypeFilter, assessmentLanguageFilter]);
+
+    useEffect(() => {
+        setAssignmentPage(1);
+    }, [
+        assignmentSearch,
+        assignmentStatusFilter,
+        assignmentExecutionFilter,
+        assignmentLanguageFilter,
+    ]);
+
+    const dashboardStats = useMemo(() => {
+        return {
+            totalCandidates: candidates.length,
+            totalAssessments: assessments.length,
+            pendingSubmissions: assignments.filter(
+                (assignment) => assignment.status === "SUBMITTED"
+            ).length,
+            gradedSubmissions: assignments.filter(
+                (assignment) => assignment.status === "GRADED"
+            ).length,
+        };
+    }, [candidates, assessments, assignments]);
+
+    const filteredCandidates = useMemo(() => {
+        const search = candidateSearch.trim().toLowerCase();
+
+        return candidates.filter((candidate) => {
+            const candidateStatus = candidate.status || "INVITED";
+
+            const matchesSearch =
+                !search ||
+                candidate.name?.toLowerCase().includes(search) ||
+                candidate.email?.toLowerCase().includes(search);
+
+            const matchesStatus =
+                candidateStatusFilter === "ALL" ||
+                candidateStatus === candidateStatusFilter;
+
+            return matchesSearch && matchesStatus;
+        });
+    }, [candidates, candidateSearch, candidateStatusFilter]);
+
+    const filteredAssessments = useMemo(() => {
+        const search = assessmentSearch.trim().toLowerCase();
+
+        return assessments.filter((assessment) => {
+            const matchesSearch =
+                !search ||
+                assessment.title?.toLowerCase().includes(search) ||
+                assessment.description?.toLowerCase().includes(search) ||
+                assessment.prompt?.toLowerCase().includes(search);
+
+            const matchesType =
+                assessmentTypeFilter === "ALL" ||
+                assessment.type === assessmentTypeFilter;
+
+            const matchesLanguage =
+                assessmentLanguageFilter === "ALL" ||
+                assessment.language === assessmentLanguageFilter;
+
+            return matchesSearch && matchesType && matchesLanguage;
+        });
+    }, [
+        assessments,
+        assessmentSearch,
+        assessmentTypeFilter,
+        assessmentLanguageFilter,
+    ]);
+
+    const filteredAssignments = useMemo(() => {
+        const search = assignmentSearch.trim().toLowerCase();
+
+        return assignments.filter((assignment) => {
+            const executionStatus = assignment.executionStatus || "NOT_RUN";
+
+            const matchesSearch =
+                !search ||
+                assignment.candidateName?.toLowerCase().includes(search) ||
+                assignment.candidateEmail?.toLowerCase().includes(search) ||
+                assignment.assessmentTitle?.toLowerCase().includes(search);
+
+            const matchesStatus =
+                assignmentStatusFilter === "ALL" ||
+                assignment.status === assignmentStatusFilter;
+
+            const matchesExecution =
+                assignmentExecutionFilter === "ALL" ||
+                executionStatus === assignmentExecutionFilter;
+
+            const matchesLanguage =
+                assignmentLanguageFilter === "ALL" ||
+                assignment.language === assignmentLanguageFilter;
+
+            return (
+                matchesSearch &&
+                matchesStatus &&
+                matchesExecution &&
+                matchesLanguage
+            );
+        });
+    }, [
+        assignments,
+        assignmentSearch,
+        assignmentStatusFilter,
+        assignmentExecutionFilter,
+        assignmentLanguageFilter,
+    ]);
+
+    const paginatedCandidates = paginate(filteredCandidates, candidatePage);
+    const paginatedAssessments = paginate(filteredAssessments, assessmentPage);
+    const paginatedAssignments = paginate(filteredAssignments, assignmentPage);
 
     const handleCandidateChange = (event) => {
         setCandidateForm((current) => ({
@@ -127,7 +264,7 @@ function AdminDashboard() {
                 email: "",
             });
 
-            setSuccessMessage("Candidate created successfully.");
+            setSuccessMessage("Candidate invited successfully.");
             fetchDashboardData();
         } catch (err) {
             setError(
@@ -232,12 +369,31 @@ function AdminDashboard() {
         }
     };
 
+    const handleExecuteAssignment = async (assignmentId) => {
+        setError("");
+        setSuccessMessage("");
+
+        try {
+            await axiosClient.post(`/assessments/assignments/${assignmentId}/execute`);
+
+            setSuccessMessage("Code executed and automatically graded.");
+            fetchDashboardData();
+        } catch (err) {
+            setError(
+                err.response?.data?.message ||
+                err.response?.data?.error ||
+                "Failed to execute code"
+            );
+        }
+    };
+
     return (
-        <div className="page-container">
+        <div className="page-container admin-page">
             <div className="dashboard-header">
                 <div>
+                    <p className="eyebrow">Organization Workspace</p>
                     <h1>Admin Dashboard</h1>
-                    <p>Welcome, {user?.fullName}. Create, assign, and grade assessments.</p>
+                    <p>Welcome, {user?.fullName}. Manage candidates, assessments, and results.</p>
                 </div>
 
                 <button className="secondary-button" onClick={fetchDashboardData}>
@@ -248,9 +404,16 @@ function AdminDashboard() {
             {error && <div className="error-box">{error}</div>}
             {successMessage && <div className="success-box">{successMessage}</div>}
 
+            <div className="summary-grid">
+                <MetricCard label="Candidates" value={dashboardStats.totalCandidates} />
+                <MetricCard label="Assessments" value={dashboardStats.totalAssessments} />
+                <MetricCard label="Pending Review" value={dashboardStats.pendingSubmissions} />
+                <MetricCard label="Graded" value={dashboardStats.gradedSubmissions} />
+            </div>
+
             <div className="admin-grid">
-                <div className="form-card">
-                    <h2>Create Candidate</h2>
+                <div className="form-card compact-form-card">
+                    <h2>Invite Candidate</h2>
 
                     <form onSubmit={handleCreateCandidate}>
                         <label>Candidate Name</label>
@@ -271,12 +434,12 @@ function AdminDashboard() {
                         />
 
                         <button className="primary-button" type="submit">
-                            Create Candidate
+                            Invite Candidate
                         </button>
                     </form>
                 </div>
 
-                <div className="form-card">
+                <div className="form-card compact-form-card">
                     <h2>Create Assessment</h2>
 
                     <form onSubmit={handleCreateAssessment}>
@@ -295,30 +458,34 @@ function AdminDashboard() {
                             onChange={handleAssessmentChange}
                         />
 
-                        <label>Type</label>
-                        <select
-                            name="type"
-                            value={assessmentForm.type}
-                            onChange={handleAssessmentChange}
-                        >
-                            <option value="CODING_CHALLENGE">Coding Challenge</option>
-                            <option value="QUIZ">Quiz</option>
-                        </select>
-
-                        {assessmentForm.type === "CODING_CHALLENGE" && (
-                            <>
-                                <label>Language</label>
+                        <div className="two-column-form">
+                            <div>
+                                <label>Type</label>
                                 <select
-                                    name="language"
-                                    value={assessmentForm.language}
+                                    name="type"
+                                    value={assessmentForm.type}
                                     onChange={handleAssessmentChange}
                                 >
-                                    <option value="JAVA">Java</option>
-                                    <option value="JAVASCRIPT">JavaScript</option>
-                                    <option value="PYTHON">Python</option>
+                                    <option value="CODING_CHALLENGE">Coding Challenge</option>
+                                    <option value="QUIZ">Quiz</option>
                                 </select>
-                            </>
-                        )}
+                            </div>
+
+                            {assessmentForm.type === "CODING_CHALLENGE" && (
+                                <div>
+                                    <label>Language</label>
+                                    <select
+                                        name="language"
+                                        value={assessmentForm.language}
+                                        onChange={handleAssessmentChange}
+                                    >
+                                        <option value="JAVA">Java</option>
+                                        <option value="JAVASCRIPT">JavaScript</option>
+                                        <option value="PYTHON">Python</option>
+                                    </select>
+                                </div>
+                            )}
+                        </div>
 
                         <label>Max Score</label>
                         <input
@@ -333,7 +500,7 @@ function AdminDashboard() {
                         <label>Prompt</label>
                         <textarea
                             name="prompt"
-                            rows="6"
+                            rows="4"
                             value={assessmentForm.prompt}
                             onChange={handleAssessmentChange}
                             required
@@ -344,7 +511,8 @@ function AdminDashboard() {
                                 <label>Starter Code</label>
                                 <textarea
                                     name="starterCode"
-                                    rows="8"
+                                    rows="5"
+                                    className="code-textarea"
                                     value={assessmentForm.starterCode}
                                     onChange={handleAssessmentChange}
                                 />
@@ -352,7 +520,7 @@ function AdminDashboard() {
                                 <label>Expected Output</label>
                                 <textarea
                                     name="expectedOutput"
-                                    rows="3"
+                                    rows="2"
                                     value={assessmentForm.expectedOutput}
                                     onChange={handleAssessmentChange}
                                 />
@@ -365,7 +533,7 @@ function AdminDashboard() {
                     </form>
                 </div>
 
-                <div className="form-card">
+                <div className="form-card compact-form-card">
                     <h2>Assign Assessment</h2>
 
                     <form onSubmit={handleAssignAssessment}>
@@ -407,190 +575,493 @@ function AdminDashboard() {
             </div>
 
             <div className="dashboard-sections">
-                <div className="list-card">
-                    <h2>Candidates</h2>
+                <section className="list-card">
+                    <SectionHeader
+                        title="Candidates"
+                        subtitle="Candidates invited or linked to this organization."
+                    />
 
-                    {candidates.length === 0 && <p>No candidates created yet.</p>}
+                    <div className="table-toolbar">
+                        <input
+                            value={candidateSearch}
+                            onChange={(event) => setCandidateSearch(event.target.value)}
+                            placeholder="Search by name or email"
+                        />
 
-                    <div className="candidate-list">
-                        {candidates.map((candidate) => (
-                            <div className="candidate-card" key={candidate.id}>
-                                <h3>{candidate.name}</h3>
-                                <p>{candidate.email}</p>
-                                <small>ID: {candidate.id}</small>
-                            </div>
-                        ))}
+                        <select
+                            value={candidateStatusFilter}
+                            onChange={(event) => setCandidateStatusFilter(event.target.value)}
+                        >
+                            <option value="ALL">All statuses</option>
+                            <option value="INVITED">Invited</option>
+                            <option value="REGISTERED">Registered</option>
+                        </select>
                     </div>
-                </div>
 
-                <div className="list-card">
-                    <h2>Assessments</h2>
+                    <div className="table-wrapper">
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Candidate ID</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {paginatedCandidates.map((candidate) => (
+                                    <tr key={candidate.id}>
+                                        <td>{candidate.name}</td>
+                                        <td>{candidate.email}</td>
+                                        <td>
+                                            <StatusBadge value={candidate.status || "INVITED"} />
+                                        </td>
+                                        <td className="muted-cell">{candidate.id}</td>
+                                    </tr>
+                                ))}
 
-                    {assessments.length === 0 && <p>No assessments created yet.</p>}
-
-                    <div className="candidate-list">
-                        {assessments.map((assessment) => (
-                            <div className="candidate-card" key={assessment.id}>
-                                <h3>{assessment.title}</h3>
-                                <p>{assessment.description}</p>
-                                <p>
-                                    <strong>Type:</strong> {assessment.type}
-                                </p>
-                                <p>
-                                    <strong>Language:</strong> {assessment.language}
-                                </p>
-                                <p>
-                                    <strong>Max Score:</strong> {assessment.maxScore}
-                                </p>
-                                <p>
-                                    <strong>Prompt:</strong>
-                                </p>
-                                <pre>{assessment.prompt}</pre>
-
-                                {assessment.type === "CODING_CHALLENGE" && (
-                                    <>
-                                        <p>
-                                            <strong>Starter Code:</strong>
-                                        </p>
-                                        <pre>{assessment.starterCode}</pre>
-
-                                        <p>
-                                            <strong>Expected Output:</strong>
-                                        </p>
-                                        <pre>{assessment.expectedOutput}</pre>
-                                    </>
+                                {paginatedCandidates.length === 0 && (
+                                    <EmptyTableRow colSpan={4} message="No candidates found." />
                                 )}
-                            </div>
-                        ))}
+                            </tbody>
+                        </table>
                     </div>
-                </div>
 
-                <div className="list-card">
-                    <h2>Assignments</h2>
+                    <Pagination
+                        page={candidatePage}
+                        totalItems={filteredCandidates.length}
+                        onPageChange={setCandidatePage}
+                    />
+                </section>
 
-                    {assignments.length === 0 && <p>No assignments yet.</p>}
+                <section className="list-card">
+                    <SectionHeader
+                        title="Assessments"
+                        subtitle="Assessment templates available for your organization."
+                    />
 
-                    <div className="candidate-list">
-                        {assignments.map((assignment) => (
-                            <div className="candidate-card" key={assignment.id}>
-                                <h3>{assignment.assessmentTitle}</h3>
+                    <div className="table-toolbar">
+                        <input
+                            value={assessmentSearch}
+                            onChange={(event) => setAssessmentSearch(event.target.value)}
+                            placeholder="Search assessments"
+                        />
 
-                                <p>
-                                    <strong>Candidate:</strong> {assignment.candidateName}
-                                </p>
+                        <select
+                            value={assessmentTypeFilter}
+                            onChange={(event) => setAssessmentTypeFilter(event.target.value)}
+                        >
+                            <option value="ALL">All types</option>
+                            <option value="CODING_CHALLENGE">Coding Challenge</option>
+                            <option value="QUIZ">Quiz</option>
+                        </select>
 
-                                <p>
-                                    <strong>Email:</strong> {assignment.candidateEmail}
-                                </p>
-
-                                <p>
-                                    <strong>Type:</strong> {assignment.assessmentType}
-                                </p>
-
-                                <p>
-                                    <strong>Language:</strong> {assignment.language}
-                                </p>
-
-                                <p>
-                                    <strong>Status:</strong> {assignment.status}
-                                </p>
-
-                                <p>
-                                    <strong>Execution Status:</strong>{" "}
-                                    {assignment.executionStatus || "NOT_RUN"}
-                                </p>
-
-                                {assignment.submittedAt && (
-                                    <p>
-                                        <strong>Submitted At:</strong>{" "}
-                                        {new Date(assignment.submittedAt).toLocaleString()}
-                                    </p>
-                                )}
-
-                                {assignment.submittedAnswer && (
-                                    <>
-                                        <p>
-                                            <strong>Submitted Answer:</strong>
-                                        </p>
-                                        <pre>{assignment.submittedAnswer}</pre>
-                                    </>
-                                )}
-
-                                {assignment.submittedCode && (
-                                    <>
-                                        <p>
-                                            <strong>Submitted Code:</strong>
-                                        </p>
-                                        <pre>{assignment.submittedCode}</pre>
-                                    </>
-                                )}
-
-                                {assignment.status === "SUBMITTED" && (
-                                    <div className="grade-box">
-                                        <h4>Grade Submission</h4>
-
-                                        <label>Score</label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            value={gradeForms[assignment.id]?.score || ""}
-                                            onChange={(event) =>
-                                                handleGradeChange(
-                                                    assignment.id,
-                                                    "score",
-                                                    event.target.value
-                                                )
-                                            }
-                                            placeholder="Enter score"
-                                        />
-
-                                        <label>Feedback</label>
-                                        <textarea
-                                            rows="4"
-                                            value={gradeForms[assignment.id]?.feedback || ""}
-                                            onChange={(event) =>
-                                                handleGradeChange(
-                                                    assignment.id,
-                                                    "feedback",
-                                                    event.target.value
-                                                )
-                                            }
-                                            placeholder="Write feedback"
-                                        />
-
-                                        <button
-                                            className="primary-button"
-                                            onClick={() => handleGradeAssignment(assignment.id)}
-                                        >
-                                            Save Grade
-                                        </button>
-                                    </div>
-                                )}
-
-                                {assignment.status === "GRADED" && (
-                                    <div className="graded-box">
-                                        <p>
-                                            <strong>Score:</strong> {assignment.score}
-                                        </p>
-                                        <p>
-                                            <strong>Feedback:</strong>{" "}
-                                            {assignment.feedback || "No feedback provided"}
-                                        </p>
-                                    </div>
-                                )}
-
-                                {assignment.status === "ASSIGNED" && (
-                                    <p className="muted-text">
-                                        Waiting for candidate submission.
-                                    </p>
-                                )}
-                            </div>
-                        ))}
+                        <select
+                            value={assessmentLanguageFilter}
+                            onChange={(event) => setAssessmentLanguageFilter(event.target.value)}
+                        >
+                            <option value="ALL">All languages</option>
+                            <option value="JAVA">Java</option>
+                            <option value="JAVASCRIPT">JavaScript</option>
+                            <option value="PYTHON">Python</option>
+                            <option value="TEXT">Text</option>
+                        </select>
                     </div>
-                </div>
+
+                    <div className="table-wrapper">
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Type</th>
+                                    <th>Language</th>
+                                    <th>Max Score</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {paginatedAssessments.map((assessment) => (
+                                    <tr key={assessment.id}>
+                                        <td>{assessment.title}</td>
+                                        <td>
+                                            <StatusBadge value={assessment.type} />
+                                        </td>
+                                        <td>{formatLanguage(assessment.language)}</td>
+                                        <td>{assessment.maxScore}</td>
+                                        <td className="muted-cell">
+                                            {assessment.description || "No description"}
+                                        </td>
+                                    </tr>
+                                ))}
+
+                                {paginatedAssessments.length === 0 && (
+                                    <EmptyTableRow colSpan={5} message="No assessments found." />
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <Pagination
+                        page={assessmentPage}
+                        totalItems={filteredAssessments.length}
+                        onPageChange={setAssessmentPage}
+                    />
+                </section>
+
+                <section className="list-card">
+                    <SectionHeader
+                        title="Assignment Results"
+                        subtitle="Review submissions, execute coding challenges, and grade results."
+                    />
+
+                    <div className="table-toolbar assignment-toolbar">
+                        <input
+                            value={assignmentSearch}
+                            onChange={(event) => setAssignmentSearch(event.target.value)}
+                            placeholder="Search candidate, email, or assessment"
+                        />
+
+                        <select
+                            value={assignmentStatusFilter}
+                            onChange={(event) => setAssignmentStatusFilter(event.target.value)}
+                        >
+                            <option value="ALL">All statuses</option>
+                            <option value="ASSIGNED">Assigned</option>
+                            <option value="SUBMITTED">Submitted</option>
+                            <option value="GRADED">Graded</option>
+                        </select>
+
+                        <select
+                            value={assignmentExecutionFilter}
+                            onChange={(event) => setAssignmentExecutionFilter(event.target.value)}
+                        >
+                            <option value="ALL">All execution statuses</option>
+                            <option value="NOT_RUN">Not executed</option>
+                            <option value="PASSED">Passed</option>
+                            <option value="FAILED">Failed</option>
+                            <option value="ERROR">Error</option>
+                            <option value="TIMEOUT">Timeout</option>
+                        </select>
+
+                        <select
+                            value={assignmentLanguageFilter}
+                            onChange={(event) => setAssignmentLanguageFilter(event.target.value)}
+                        >
+                            <option value="ALL">All languages</option>
+                            <option value="JAVA">Java</option>
+                            <option value="JAVASCRIPT">JavaScript</option>
+                            <option value="PYTHON">Python</option>
+                            <option value="TEXT">Text</option>
+                        </select>
+                    </div>
+
+                    <div className="table-wrapper">
+                        <table className="data-table results-table">
+                            <thead>
+                                <tr>
+                                    <th>Candidate</th>
+                                    <th>Assessment</th>
+                                    <th>Language</th>
+                                    <th>Status</th>
+                                    <th>Execution</th>
+                                    <th>Score</th>
+                                    <th>Submitted</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {paginatedAssignments.map((assignment) => (
+                                    <tr key={assignment.id}>
+                                        <td>
+                                            <div className="primary-cell">{assignment.candidateName}</div>
+                                            <div className="muted-cell">{assignment.candidateEmail}</div>
+                                        </td>
+                                        <td>
+                                            <div className="primary-cell">{assignment.assessmentTitle}</div>
+                                            <div className="muted-cell">{assignment.assessmentType}</div>
+                                        </td>
+                                        <td>{formatLanguage(assignment.language)}</td>
+                                        <td>
+                                            <StatusBadge value={assignment.status} />
+                                        </td>
+                                        <td>
+                                            <StatusBadge value={assignment.executionStatus || "NOT_RUN"} />
+                                        </td>
+                                        <td>{assignment.score ?? "—"}</td>
+                                        <td>{formatDate(assignment.submittedAt)}</td>
+                                        <td>
+                                            <div className="table-actions">
+                                                {assignment.status === "SUBMITTED" &&
+                                                    assignment.assessmentType === "CODING_CHALLENGE" && (
+                                                        <button
+                                                            className="primary-button small-button"
+                                                            onClick={() => handleExecuteAssignment(assignment.id)}
+                                                        >
+                                                            Run
+                                                        </button>
+                                                    )}
+
+                                                <button
+                                                    className="secondary-button small-button"
+                                                    onClick={() =>
+                                                        setExpandedAssignmentId((current) =>
+                                                            current === assignment.id ? null : assignment.id
+                                                        )
+                                                    }
+                                                >
+                                                    {expandedAssignmentId === assignment.id
+                                                        ? "Hide"
+                                                        : "Details"}
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+
+                                {paginatedAssignments.length === 0 && (
+                                    <EmptyTableRow colSpan={8} message="No assignment results found." />
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <Pagination
+                        page={assignmentPage}
+                        totalItems={filteredAssignments.length}
+                        onPageChange={setAssignmentPage}
+                    />
+
+                    {expandedAssignmentId && (
+                        <AssignmentDetails
+                            assignment={assignments.find(
+                                (assignment) => assignment.id === expandedAssignmentId
+                            )}
+                            gradeForms={gradeForms}
+                            onGradeChange={handleGradeChange}
+                            onGradeAssignment={handleGradeAssignment}
+                        />
+                    )}
+                </section>
             </div>
         </div>
     );
+}
+
+function MetricCard({ label, value }) {
+    return (
+        <div className="metric-card">
+            <span>{label}</span>
+            <strong>{value}</strong>
+        </div>
+    );
+}
+
+function SectionHeader({ title, subtitle }) {
+    return (
+        <div className="section-header">
+            <div>
+                <h2>{title}</h2>
+                <p>{subtitle}</p>
+            </div>
+        </div>
+    );
+}
+
+function AssignmentDetails({ assignment, gradeForms, onGradeChange, onGradeAssignment }) {
+    if (!assignment) {
+        return null;
+    }
+
+    return (
+        <div className="detail-panel">
+            <div className="detail-panel-header">
+                <div>
+                    <h3>{assignment.assessmentTitle}</h3>
+                    <p>
+                        {assignment.candidateName} · {assignment.candidateEmail}
+                    </p>
+                </div>
+
+                <StatusBadge value={assignment.status} />
+            </div>
+
+            <div className="detail-grid">
+                <DetailItem label="Type" value={assignment.assessmentType} />
+                <DetailItem label="Language" value={formatLanguage(assignment.language)} />
+                <DetailItem label="Execution Status" value={assignment.executionStatus || "NOT_RUN"} />
+                <DetailItem label="Score" value={assignment.score ?? "Not graded"} />
+                <DetailItem label="Assigned At" value={formatDate(assignment.assignedAt)} />
+                <DetailItem label="Submitted At" value={formatDate(assignment.submittedAt)} />
+            </div>
+
+            <CodeBlock title="Prompt" value={assignment.prompt} />
+            <CodeBlock title="Submitted Answer" value={assignment.submittedAnswer} />
+            <CodeBlock title="Submitted Code" value={assignment.submittedCode} />
+            <CodeBlock title="Expected Output" value={assignment.expectedOutput} />
+            <CodeBlock title="Actual Output" value={assignment.actualOutput} />
+            <CodeBlock title="Execution Error" value={assignment.executionError} />
+
+            {assignment.status === "SUBMITTED" && (
+                <div className="grade-box detail-grade-box">
+                    <h4>Manual Grade</h4>
+
+                    <div className="two-column-form">
+                        <div>
+                            <label>Score</label>
+                            <input
+                                type="number"
+                                min="0"
+                                value={gradeForms[assignment.id]?.score || ""}
+                                onChange={(event) =>
+                                    onGradeChange(assignment.id, "score", event.target.value)
+                                }
+                                placeholder="Enter score"
+                            />
+                        </div>
+
+                        <div>
+                            <label>Feedback</label>
+                            <textarea
+                                rows="3"
+                                value={gradeForms[assignment.id]?.feedback || ""}
+                                onChange={(event) =>
+                                    onGradeChange(assignment.id, "feedback", event.target.value)
+                                }
+                                placeholder="Write feedback"
+                            />
+                        </div>
+                    </div>
+
+                    <button
+                        className="primary-button"
+                        onClick={() => onGradeAssignment(assignment.id)}
+                    >
+                        Save Grade
+                    </button>
+                </div>
+            )}
+
+            {assignment.status === "GRADED" && (
+                <div className="graded-box">
+                    <p>
+                        <strong>Feedback:</strong>{" "}
+                        {assignment.feedback || "No feedback provided"}
+                    </p>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function DetailItem({ label, value }) {
+    return (
+        <div className="detail-item">
+            <span>{label}</span>
+            <strong>{value || "—"}</strong>
+        </div>
+    );
+}
+
+function CodeBlock({ title, value }) {
+    if (!value) {
+        return null;
+    }
+
+    return (
+        <div className="code-block">
+            <p>
+                <strong>{title}</strong>
+            </p>
+            <pre>{value}</pre>
+        </div>
+    );
+}
+
+function StatusBadge({ value }) {
+    const normalizedValue = value || "UNKNOWN";
+
+    return (
+        <span className={`status-badge status-${normalizedValue.toLowerCase()}`}>
+            {normalizedValue.replaceAll("_", " ")}
+        </span>
+    );
+}
+
+function EmptyTableRow({ colSpan, message }) {
+    return (
+        <tr>
+            <td colSpan={colSpan} className="empty-table-cell">
+                {message}
+            </td>
+        </tr>
+    );
+}
+
+function Pagination({ page, totalItems, onPageChange }) {
+    const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+
+    return (
+        <div className="pagination-row">
+            <span>
+                Page {page} of {totalPages} · {totalItems} result
+                {totalItems === 1 ? "" : "s"}
+            </span>
+
+            <div className="pagination-actions">
+                <button
+                    className="secondary-button small-button"
+                    disabled={page <= 1}
+                    onClick={() => onPageChange(page - 1)}
+                >
+                    Previous
+                </button>
+
+                <button
+                    className="secondary-button small-button"
+                    disabled={page >= totalPages}
+                    onClick={() => onPageChange(page + 1)}
+                >
+                    Next
+                </button>
+            </div>
+        </div>
+    );
+}
+
+function paginate(items, page) {
+    return items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+}
+
+function formatDate(value) {
+    if (!value) {
+        return "—";
+    }
+
+    return new Date(value).toLocaleString();
+}
+
+function formatLanguage(language) {
+    if (!language) {
+        return "—";
+    }
+
+    if (language === "JAVASCRIPT") {
+        return "JavaScript";
+    }
+
+    if (language === "PYTHON") {
+        return "Python";
+    }
+
+    if (language === "JAVA") {
+        return "Java";
+    }
+
+    if (language === "TEXT") {
+        return "Text";
+    }
+
+    return language;
 }
 
 function getDefaultStarterCode(language) {

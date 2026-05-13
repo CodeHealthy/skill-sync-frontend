@@ -11,6 +11,7 @@ function RegisterPage() {
         email: "",
         password: "",
         role: "CANDIDATE",
+        organizationName: "",
     });
 
     const [error, setError] = useState("");
@@ -29,10 +30,20 @@ function RegisterPage() {
     }
 
     const handleChange = (event) => {
-        setFormData((current) => ({
-            ...current,
-            [event.target.name]: event.target.value,
-        }));
+        const { name, value } = event.target;
+
+        setFormData((current) => {
+            const updated = {
+                ...current,
+                [name]: value,
+            };
+
+            if (name === "role" && value === "CANDIDATE") {
+                updated.organizationName = "";
+            }
+
+            return updated;
+        });
     };
 
     const handleSubmit = async (event) => {
@@ -40,8 +51,25 @@ function RegisterPage() {
         setError("");
         setSubmitting(true);
 
+        const payload = {
+            fullName: formData.fullName,
+            email: formData.email,
+            password: formData.password,
+            role: formData.role,
+        };
+
+        if (formData.role === "ADMIN") {
+            if (!formData.organizationName.trim()) {
+                setError("Organization name is required for admin registration.");
+                setSubmitting(false);
+                return;
+            }
+
+            payload.organizationName = formData.organizationName.trim();
+        }
+
         try {
-            const authData = await register(formData);
+            const authData = await register(payload);
 
             if (authData.role === "ADMIN") {
                 navigate("/admin", { replace: true });
@@ -104,6 +132,20 @@ function RegisterPage() {
                         <option value="CANDIDATE">Candidate</option>
                         <option value="ADMIN">Admin / Recruiter</option>
                     </select>
+
+                    {formData.role === "ADMIN" && (
+                        <>
+                            <label>Organization Name</label>
+                            <input
+                                name="organizationName"
+                                type="text"
+                                value={formData.organizationName}
+                                onChange={handleChange}
+                                placeholder="Acme Hiring Team"
+                                required
+                            />
+                        </>
+                    )}
 
                     <button type="submit" className="primary-button" disabled={submitting}>
                         {submitting ? "Creating account..." : "Create Account"}
