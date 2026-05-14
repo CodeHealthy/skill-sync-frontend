@@ -54,8 +54,16 @@ function AdminDashboard() {
     const [error, setError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
 
+    const [loadingDashboard, setLoadingDashboard] = useState(false);
+    const [creatingCandidate, setCreatingCandidate] = useState(false);
+    const [creatingAssessment, setCreatingAssessment] = useState(false);
+    const [assigningAssessment, setAssigningAssessment] = useState(false);
+    const [gradingAssignmentId, setGradingAssignmentId] = useState(null);
+    const [executingAssignmentId, setExecutingAssignmentId] = useState(null);
+
     const fetchDashboardData = async () => {
         setError("");
+        setLoadingDashboard(true);
 
         try {
             const [candidateResponse, assessmentResponse, assignmentResponse] =
@@ -74,6 +82,8 @@ function AdminDashboard() {
                 err.response?.data?.error ||
                 "Failed to load dashboard data"
             );
+        } finally {
+            setLoadingDashboard(false);
         }
     };
 
@@ -253,8 +263,14 @@ function AdminDashboard() {
 
     const handleCreateCandidate = async (event) => {
         event.preventDefault();
+
+        if (creatingCandidate) {
+            return;
+        }
+
         setError("");
         setSuccessMessage("");
+        setCreatingCandidate(true);
 
         try {
             await axiosClient.post("/candidates", candidateForm);
@@ -265,20 +281,28 @@ function AdminDashboard() {
             });
 
             setSuccessMessage("Candidate invited successfully.");
-            fetchDashboardData();
+            await fetchDashboardData();
         } catch (err) {
             setError(
                 err.response?.data?.message ||
                 err.response?.data?.error ||
                 "Failed to create candidate"
             );
+        } finally {
+            setCreatingCandidate(false);
         }
     };
 
     const handleCreateAssessment = async (event) => {
         event.preventDefault();
+
+        if (creatingAssessment) {
+            return;
+        }
+
         setError("");
         setSuccessMessage("");
+        setCreatingAssessment(true);
 
         try {
             await axiosClient.post("/assessments", {
@@ -298,20 +322,28 @@ function AdminDashboard() {
             });
 
             setSuccessMessage("Assessment created successfully.");
-            fetchDashboardData();
+            await fetchDashboardData();
         } catch (err) {
             setError(
                 err.response?.data?.message ||
                 err.response?.data?.error ||
                 "Failed to create assessment"
             );
+        } finally {
+            setCreatingAssessment(false);
         }
     };
 
     const handleAssignAssessment = async (event) => {
         event.preventDefault();
+
+        if (assigningAssessment) {
+            return;
+        }
+
         setError("");
         setSuccessMessage("");
+        setAssigningAssessment(true);
 
         try {
             await axiosClient.post("/assessments/assign", assignForm);
@@ -322,17 +354,23 @@ function AdminDashboard() {
             });
 
             setSuccessMessage("Assessment assigned successfully.");
-            fetchDashboardData();
+            await fetchDashboardData();
         } catch (err) {
             setError(
                 err.response?.data?.message ||
                 err.response?.data?.error ||
                 "Failed to assign assessment"
             );
+        } finally {
+            setAssigningAssessment(false);
         }
     };
 
     const handleGradeAssignment = async (assignmentId) => {
+        if (gradingAssignmentId) {
+            return;
+        }
+
         setError("");
         setSuccessMessage("");
 
@@ -342,6 +380,8 @@ function AdminDashboard() {
             setError("Score is required before grading.");
             return;
         }
+
+        setGradingAssignmentId(assignmentId);
 
         try {
             await axiosClient.patch(`/assessments/assignments/${assignmentId}/grade`, {
@@ -359,31 +399,39 @@ function AdminDashboard() {
                 },
             }));
 
-            fetchDashboardData();
+            await fetchDashboardData();
         } catch (err) {
             setError(
                 err.response?.data?.message ||
                 err.response?.data?.error ||
                 "Failed to grade assignment"
             );
+        } finally {
+            setGradingAssignmentId(null);
         }
     };
-
     const handleExecuteAssignment = async (assignmentId) => {
+        if (executingAssignmentId) {
+            return;
+        }
+
         setError("");
         setSuccessMessage("");
+        setExecutingAssignmentId(assignmentId);
 
         try {
             await axiosClient.post(`/assessments/assignments/${assignmentId}/execute`);
 
             setSuccessMessage("Code executed and automatically graded.");
-            fetchDashboardData();
+            await fetchDashboardData();
         } catch (err) {
             setError(
                 err.response?.data?.message ||
                 err.response?.data?.error ||
                 "Failed to execute code"
             );
+        } finally {
+            setExecutingAssignmentId(null);
         }
     };
 
@@ -396,13 +444,22 @@ function AdminDashboard() {
                     <p>Welcome, {user?.fullName}. Manage candidates, assessments, and results.</p>
                 </div>
 
-                <button className="secondary-button" onClick={fetchDashboardData}>
-                    Refresh
+                <button
+                    className="secondary-button"
+                    onClick={fetchDashboardData}
+                    disabled={loadingDashboard}
+                >
+                    {loadingDashboard ? "Refreshing..." : "Refresh"}
                 </button>
             </div>
 
             {error && <div className="error-box">{error}</div>}
             {successMessage && <div className="success-box">{successMessage}</div>}
+            {loadingDashboard && (
+                <div className="info-box">
+                    Loading latest dashboard data...
+                </div>
+            )}
 
             <div className="summary-grid">
                 <MetricCard label="Candidates" value={dashboardStats.totalCandidates} />
@@ -433,8 +490,8 @@ function AdminDashboard() {
                             required
                         />
 
-                        <button className="primary-button" type="submit">
-                            Invite Candidate
+                        <button className="primary-button" type="submit" disabled={creatingCandidate}>
+                            {creatingCandidate ? "Inviting..." : "Invite Candidate"}
                         </button>
                     </form>
                 </div>
@@ -527,8 +584,8 @@ function AdminDashboard() {
                             </>
                         )}
 
-                        <button className="primary-button" type="submit">
-                            Create Assessment
+                        <button className="primary-button" type="submit" disabled={creatingAssessment}>
+                            {creatingAssessment ? "Creating..." : "Create Assessment"}
                         </button>
                     </form>
                 </div>
@@ -567,8 +624,8 @@ function AdminDashboard() {
                             ))}
                         </select>
 
-                        <button className="primary-button" type="submit">
-                            Assign Assessment
+                        <button className="primary-button" type="submit" disabled={assigningAssessment}>
+                            {assigningAssessment ? "Assigning..." : "Assign Assessment"}
                         </button>
                     </form>
                 </div>
@@ -796,8 +853,9 @@ function AdminDashboard() {
                                                         <button
                                                             className="primary-button small-button"
                                                             onClick={() => handleExecuteAssignment(assignment.id)}
+                                                            disabled={executingAssignmentId === assignment.id || Boolean(executingAssignmentId)}
                                                         >
-                                                            Run
+                                                            {executingAssignmentId === assignment.id ? "Running..." : "Run"}
                                                         </button>
                                                     )}
 
@@ -837,6 +895,7 @@ function AdminDashboard() {
                                 (assignment) => assignment.id === expandedAssignmentId
                             )}
                             gradeForms={gradeForms}
+                            gradingAssignmentId={gradingAssignmentId}
                             onGradeChange={handleGradeChange}
                             onGradeAssignment={handleGradeAssignment}
                         />
@@ -867,7 +926,13 @@ function SectionHeader({ title, subtitle }) {
     );
 }
 
-function AssignmentDetails({ assignment, gradeForms, onGradeChange, onGradeAssignment }) {
+function AssignmentDetails({
+    assignment,
+    gradeForms,
+    gradingAssignmentId,
+    onGradeChange,
+    onGradeAssignment,
+}) {
     if (!assignment) {
         return null;
     }
@@ -935,8 +1000,9 @@ function AssignmentDetails({ assignment, gradeForms, onGradeChange, onGradeAssig
                     <button
                         className="primary-button"
                         onClick={() => onGradeAssignment(assignment.id)}
+                        disabled={gradingAssignmentId === assignment.id || Boolean(gradingAssignmentId)}
                     >
-                        Save Grade
+                        {gradingAssignmentId === assignment.id ? "Saving Grade..." : "Save Grade"}
                     </button>
                 </div>
             )}

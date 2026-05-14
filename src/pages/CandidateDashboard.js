@@ -13,6 +13,9 @@ function CandidateDashboard() {
     const [error, setError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
 
+    const [loadingAssignments, setLoadingAssignments] = useState(false);
+    const [submittingAssignmentId, setSubmittingAssignmentId] = useState(null);
+
     const [searchTerm, setSearchTerm] = useState("");
     const [organizationFilter, setOrganizationFilter] = useState("ALL");
     const [statusFilter, setStatusFilter] = useState("ALL");
@@ -23,6 +26,7 @@ function CandidateDashboard() {
 
     const fetchAssignments = async () => {
         setError("");
+        setLoadingAssignments(true);
 
         try {
             const response = await axiosClient.get("/assessments/my-assignments");
@@ -48,6 +52,8 @@ function CandidateDashboard() {
                 err.response?.data?.error ||
                 "Failed to load assignments"
             );
+        } finally {
+            setLoadingAssignments(false);
         }
     };
 
@@ -146,6 +152,10 @@ function CandidateDashboard() {
     };
 
     const handleSubmit = async (assignment) => {
+        if (submittingAssignmentId) {
+            return;
+        }
+
         setError("");
         setSuccessMessage("");
 
@@ -169,6 +179,8 @@ function CandidateDashboard() {
             return;
         }
 
+        setSubmittingAssignmentId(assignment.id);
+
         try {
             await axiosClient.post(
                 `/assessments/assignments/${assignment.id}/submit`,
@@ -182,13 +194,20 @@ function CandidateDashboard() {
                 [assignment.id]: "",
             }));
 
-            fetchAssignments();
+            setCodes((current) => ({
+                ...current,
+                [assignment.id]: "",
+            }));
+
+            await fetchAssignments();
         } catch (err) {
             setError(
                 err.response?.data?.message ||
                 err.response?.data?.error ||
                 "Failed to submit assessment"
             );
+        } finally {
+            setSubmittingAssignmentId(null);
         }
     };
 
@@ -204,13 +223,23 @@ function CandidateDashboard() {
                     </p>
                 </div>
 
-                <button className="secondary-button" onClick={fetchAssignments}>
-                    Refresh
+                <button
+                    className="secondary-button"
+                    onClick={fetchAssignments}
+                    disabled={loadingAssignments}
+                >
+                    {loadingAssignments ? "Refreshing..." : "Refresh"}
                 </button>
             </div>
 
             {error && <div className="error-box">{error}</div>}
             {successMessage && <div className="success-box">{successMessage}</div>}
+
+            {loadingAssignments && (
+                <div className="info-box">
+                    Loading latest assignments...
+                </div>
+            )}
 
             <div className="summary-grid">
                 <MetricCard label="Total Assessments" value={stats.total} />
@@ -263,6 +292,7 @@ function CandidateDashboard() {
                         >
                             <option value="ALL">All execution</option>
                             <option value="NOT_RUN">Not executed</option>
+                            <option value="PENDING_EXECUTION">Pending execution</option>
                             <option value="PASSED">Passed</option>
                             <option value="FAILED">Failed</option>
                             <option value="ERROR">Error</option>
@@ -281,7 +311,7 @@ function CandidateDashboard() {
                         </select>
                     </div>
 
-                    {assignments.length === 0 && (
+                    {!loadingAssignments && assignments.length === 0 && (
                         <div className="empty-state">
                             <h3>No assessments yet</h3>
                             <p>
@@ -341,6 +371,7 @@ function CandidateDashboard() {
                             assignment={selectedAssignment}
                             code={codes[selectedAssignment.id] || ""}
                             answer={answers[selectedAssignment.id] || ""}
+                            submittingAssignmentId={submittingAssignmentId}
                             onCodeChange={handleCodeChange}
                             onAnswerChange={handleAnswerChange}
                             onSubmit={handleSubmit}
@@ -356,12 +387,15 @@ function AssignmentDetail({
     assignment,
     code,
     answer,
+    submittingAssignmentId,
     onCodeChange,
     onAnswerChange,
     onSubmit,
 }) {
     const isCodingChallenge = assignment.assessmentType === "CODING_CHALLENGE";
     const isAssigned = assignment.status === "ASSIGNED";
+    const isSubmitting = submittingAssignmentId === assignment.id;
+    const isAnySubmitting = Boolean(submittingAssignmentId);
 
     return (
         <div>
@@ -398,13 +432,15 @@ function AssignmentDetail({
                         value={code}
                         onChange={(event) => onCodeChange(assignment.id, event.target.value)}
                         placeholder="Write your code here"
+                        disabled={isAnySubmitting}
                     />
 
                     <button
                         className="primary-button"
                         onClick={() => onSubmit(assignment)}
+                        disabled={isAnySubmitting}
                     >
-                        Submit Code
+                        {isSubmitting ? "Submitting..." : "Submit Code"}
                     </button>
                 </div>
             )}
@@ -417,13 +453,15 @@ function AssignmentDetail({
                         value={answer}
                         onChange={(event) => onAnswerChange(assignment.id, event.target.value)}
                         placeholder="Write your answer here"
+                        disabled={isAnySubmitting}
                     />
 
                     <button
                         className="primary-button"
                         onClick={() => onSubmit(assignment)}
+                        disabled={isAnySubmitting}
                     >
-                        Submit Answer
+                        {isSubmitting ? "Submitting..." : "Submit Answer"}
                     </button>
                 </div>
             )}
@@ -567,6 +605,10 @@ function formatLanguage(language) {
 }
 
 function formatAssessmentType(type) {
+    if (!type) {
+        return "—";
+    }
+
     if (type === "CODING_CHALLENGE") {
         return "Coding Challenge";
     }
@@ -575,7 +617,7 @@ function formatAssessmentType(type) {
         return "Quiz";
     }
 
-    return type || "—";
+    return type;
 }
 
 export default CandidateDashboard;

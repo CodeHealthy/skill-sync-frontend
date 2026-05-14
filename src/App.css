@@ -139,7 +139,8 @@ textarea {
   color: #17202a;
 }
 
-.primary-button:disabled {
+.primary-button:disabled,
+.secondary-button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
@@ -179,6 +180,16 @@ textarea {
   background: #eafaf1;
   color: #196f3d;
   border: 1px solid #a9dfbf;
+}
+
+.info-box {
+  padding: 14px 16px;
+  border-radius: 8px;
+  margin-bottom: 18px;
+  font-weight: 600;
+  background: #ebf5fb;
+  color: #1f618d;
+  border: 1px solid #aed6f1;
 }
 
 .dashboard-header {
