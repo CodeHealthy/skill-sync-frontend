@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { showError, showSuccess, showWarning } from "../utils/toastUtils";
 
 function RegisterPage() {
     const { register, isAuthenticated, user } = useAuth();
@@ -60,7 +61,7 @@ function RegisterPage() {
 
         if (formData.role === "ADMIN") {
             if (!formData.organizationName.trim()) {
-                setError("Organization name is required for admin registration.");
+                showWarning("Organization name is required for admin registration.");
                 setSubmitting(false);
                 return;
             }
@@ -70,6 +71,8 @@ function RegisterPage() {
 
         try {
             const authData = await register(payload);
+
+            showSuccess("Account created successfully.");
 
             if (authData.role === "ADMIN") {
                 navigate("/admin", { replace: true });
@@ -82,7 +85,7 @@ function RegisterPage() {
                 err.response?.data?.error ||
                 "Registration failed";
 
-            setError(message);
+            showError(message);
         } finally {
             setSubmitting(false);
         }

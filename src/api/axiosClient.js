@@ -28,10 +28,10 @@ axiosClient.interceptors.response.use(
             localStorage.removeItem("skillsync_user");
 
             if (window.location.pathname !== "/login") {
+                sessionStorage.setItem("skillsync_auth_message", "SESSION_EXPIRED");
                 window.location.href = "/login";
             }
         }
-
         return Promise.reject(error);
     }
 );

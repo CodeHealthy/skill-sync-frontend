@@ -1,6 +1,7 @@
-import { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { useEffect, useState } from "react";
+import { showError, showSuccess, showWarning } from "../utils/toastUtils";
 
 function LoginPage() {
     const { login, isAuthenticated, user } = useAuth();
@@ -8,12 +9,20 @@ function LoginPage() {
     const location = useLocation();
 
     const [formData, setFormData] = useState({
-        email: "admin@skillsync.com",
-        password: "password123",
+        email: "",
+        password: "",
     });
 
-    const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
+
+    useEffect(() => {
+        const authMessage = sessionStorage.getItem("skillsync_auth_message");
+
+        if (authMessage === "SESSION_EXPIRED") {
+            showWarning("Session expired. Please log in again.");
+            sessionStorage.removeItem("skillsync_auth_message");
+        }
+    }, []);
 
     if (isAuthenticated) {
         if (user?.role === "ADMIN") {
@@ -36,11 +45,12 @@ function LoginPage() {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        setError("");
         setSubmitting(true);
 
         try {
             const authData = await login(formData);
+
+            showSuccess("Logged in successfully.");
 
             const redirectedFrom = location.state?.from?.pathname;
 
@@ -60,7 +70,7 @@ function LoginPage() {
                 err.response?.data?.error ||
                 "Invalid email or password";
 
-            setError(message);
+            showError(message);
         } finally {
             setSubmitting(false);
         }
@@ -71,8 +81,6 @@ function LoginPage() {
             <div className="form-card">
                 <h2>Login</h2>
                 <p>Use your SkillSync account to continue.</p>
-
-                {error && <div className="error-box">{error}</div>}
 
                 <form onSubmit={handleSubmit}>
                     <label>Email</label>

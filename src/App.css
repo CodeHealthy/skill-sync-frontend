@@ -240,6 +240,29 @@ textarea {
   color: #85929e;
 }
 
+.button-row-left {
+  display: flex;
+  justify-content: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.run-result-box {
+  margin-top: 18px;
+  background: #fbfcfc;
+  border: 1px solid #d5dbdb;
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.run-result-box .detail-grid {
+  margin-bottom: 12px;
+}
+
+.run-result-box h4 {
+  margin: 0 0 14px;
+}
+
 @media (max-width: 800px) {
   .navbar {
     height: auto;
@@ -650,8 +673,9 @@ textarea {
   color: #f8f9f9;
   padding: 14px;
   border-radius: 8px;
-  overflow-x: auto;
+  overflow: auto;
   white-space: pre-wrap;
+  max-height: 260px;
 }
 
 .detail-grade-box {
