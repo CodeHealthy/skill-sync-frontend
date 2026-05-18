@@ -91,6 +91,10 @@ a {
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
+.navbar-top-row {
+  display: contents;
+}
+
 .navbar-brand {
   display: inline-flex;
   align-items: center;
@@ -112,6 +116,10 @@ a {
   font-size: 18px;
   font-weight: 900;
   box-shadow: 0 10px 24px rgba(31, 97, 141, 0.28);
+}
+
+.navbar-menu {
+  display: contents;
 }
 
 .navbar-center,
@@ -218,6 +226,42 @@ a {
 
 .navbar-logout-button:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+.navbar-menu-button {
+  display: none;
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  padding: 10px;
+}
+
+.navbar-menu-button span {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background: var(--color-white);
+  border-radius: 999px;
+  transition: 0.2s ease;
+}
+
+.navbar-menu-button span+span {
+  margin-top: 6px;
+}
+
+.navbar-menu-button.active span:nth-child(1) {
+  transform: translateY(8px) rotate(45deg);
+}
+
+.navbar-menu-button.active span:nth-child(2) {
+  opacity: 0;
+}
+
+.navbar-menu-button.active span:nth-child(3) {
+  transform: translateY(-8px) rotate(-45deg);
 }
 
 .landing-page {
@@ -878,19 +922,63 @@ textarea {
 
 @media (max-width: 800px) {
   .navbar {
-    grid-template-columns: 1fr;
-    gap: 14px;
-    padding: 16px 22px;
+    display: block;
+    min-height: auto;
+    padding: 14px 18px;
+  }
+
+  .navbar-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .navbar-menu-button {
+    display: block;
+  }
+
+  .navbar-menu {
+    display: none;
+  }
+
+  .navbar-menu.open {
+    display: grid;
+    gap: 18px;
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .navbar-center,
   .navbar-actions {
+    align-items: stretch;
     justify-content: flex-start;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .navbar-link,
+  .navbar-login-link {
+    width: 100%;
+    padding: 11px 12px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .navbar-link:hover,
+  .navbar-login-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .navbar-cta,
+  .navbar-logout-button {
+    width: 100%;
+    text-align: center;
   }
 
   .navbar-user-pill {
-    max-width: 100%;
+    width: 100%;
+    border-radius: 14px;
   }
 
   .page-container {
