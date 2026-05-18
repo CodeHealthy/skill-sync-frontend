@@ -1,9 +1,13 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 
 function Navbar() {
     const { user, isAuthenticated, logout } = useAuth();
     const navigate = useNavigate();
+
+    const dashboardPath = user?.role === "ADMIN" ? "/admin" : "/candidate";
+    const dashboardLabel =
+        user?.role === "ADMIN" ? "Admin Dashboard" : "Candidate Portal";
 
     const handleLogout = () => {
         logout();
@@ -13,31 +17,65 @@ function Navbar() {
     return (
         <nav className="navbar">
             <Link to="/" className="navbar-brand">
-                SkillSync
+                <span className="navbar-logo-mark">S</span>
+                <span>SkillSync</span>
             </Link>
 
-            <div className="navbar-links">
-                {isAuthenticated && user?.role === "ADMIN" && (
-                    <Link to="/admin">Admin Dashboard</Link>
-                )}
-
-                {isAuthenticated && user?.role === "CANDIDATE" && (
-                    <Link to="/candidate">Candidate Portal</Link>
-                )}
+            <div className="navbar-center">
+                <NavLink to="/" className="navbar-link">
+                    Home
+                </NavLink>
 
                 {!isAuthenticated && (
                     <>
-                        <Link to="/login">Login</Link>
-                        <Link to="/register">Register</Link>
+                        <a href="/#features" className="navbar-link">
+                            Features
+                        </a>
+                        <a href="/#recruiters" className="navbar-link">
+                            Recruiters
+                        </a>
+                        <a href="/#candidates" className="navbar-link">
+                            Candidates
+                        </a>
+                    </>
+                )}
+
+                {isAuthenticated && (
+                    <NavLink to={dashboardPath} className="navbar-link">
+                        {dashboardLabel}
+                    </NavLink>
+                )}
+            </div>
+
+            <div className="navbar-actions">
+                {!isAuthenticated && (
+                    <>
+                        <Link to="/login" className="navbar-login-link">
+                            Login
+                        </Link>
+                        <Link to="/register" className="navbar-cta">
+                            Get Started
+                        </Link>
                     </>
                 )}
 
                 {isAuthenticated && (
                     <>
-                        <span className="navbar-user">
-                            {user.fullName} ({user.role})
-                        </span>
-                        <button onClick={handleLogout} className="secondary-button">
+                        <div className="navbar-user-pill">
+                            <span className="navbar-avatar">
+                                {user?.fullName?.charAt(0)?.toUpperCase() || "U"}
+                            </span>
+                            <span>
+                                {user?.fullName}
+                                <small>{user?.role}</small>
+                            </span>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={handleLogout}
+                            className="navbar-logout-button"
+                        >
                             Logout
                         </button>
                     </>

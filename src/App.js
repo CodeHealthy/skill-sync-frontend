@@ -42,9 +42,9 @@ function App() {
             </Route>
           </Route>
 
+          <Route path="/oauth-success" element={<OAuthSuccessPage />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
           <Route path="*" element={<NotFoundPage />} />
-          <Route path="/oauth-success" element={<OAuthSuccessPage />} />
         </Routes>
         <ToastContainer
           position="top-right"
