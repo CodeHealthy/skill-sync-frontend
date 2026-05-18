@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 import axiosClient from "../api/axiosClient";
 
 const AuthContext = createContext(null);
@@ -22,72 +29,65 @@ export function AuthProvider({ children }) {
         setAuthLoading(false);
     }, []);
 
-    const login = async ({ email, password }) => {
-        const response = await axiosClient.post("/auth/login", {
-            email,
-            password,
-        });
-
-        const authData = response.data;
-
+    const saveAuthData = useCallback((authData) => {
         localStorage.setItem("skillsync_token", authData.token);
-        localStorage.setItem(
-            "skillsync_user",
-            JSON.stringify({
-                userId: authData.userId,
-                fullName: authData.fullName,
-                email: authData.email,
-                role: authData.role,
-            })
-        );
 
-        setUser({
+        const authUser = {
             userId: authData.userId,
             fullName: authData.fullName,
             email: authData.email,
             role: authData.role,
-        });
+        };
 
-        return authData;
-    };
+        localStorage.setItem("skillsync_user", JSON.stringify(authUser));
+        setUser(authUser);
 
-    const register = async ({ fullName, email, password, role, organizationName }) => {
-        const response = await axiosClient.post("/auth/register", {
-            fullName,
-            email,
-            password,
-            role,
-            organizationName,
-        });
+        return authUser;
+    }, []);
 
-        const authData = response.data;
+    const updateAuthData = useCallback(
+        (authData) => {
+            return saveAuthData(authData);
+        },
+        [saveAuthData]
+    );
 
-        localStorage.setItem("skillsync_token", authData.token);
-        localStorage.setItem(
-            "skillsync_user",
-            JSON.stringify({
-                userId: authData.userId,
-                fullName: authData.fullName,
-                email: authData.email,
-                role: authData.role,
-            })
-        );
+    const login = useCallback(
+        async ({ email, password }) => {
+            const response = await axiosClient.post("/auth/login", {
+                email,
+                password,
+            });
 
-        setUser({
-            userId: authData.userId,
-            fullName: authData.fullName,
-            email: authData.email,
-            role: authData.role,
-        });
+            const authData = response.data;
 
-        return authData;
-    };
+            saveAuthData(authData);
 
-    const logout = () => {
+            return authData;
+        },
+        [saveAuthData]
+    );
+
+    const register = useCallback(
+        async ({ fullName, email, password, role, organizationName }) => {
+            const response = await axiosClient.post("/auth/register", {
+                fullName,
+                email,
+                password,
+                role,
+                organizationName,
+            });
+
+            return response.data;
+        },
+        []
+    );
+
+    const logout = useCallback(() => {
         localStorage.removeItem("skillsync_token");
         localStorage.removeItem("skillsync_user");
         setUser(null);
-    };
+    }, []);
 
     const isAuthenticated = Boolean(user);
 
@@ -99,8 +99,17 @@ export function AuthProvider({ children }) {
             login,
             register,
             logout,
+            updateAuthData,
         }),
-        [user, authLoading, isAuthenticated]
+        [
+            user,
+            authLoading,
+            isAuthenticated,
+            login,
+            register,
+            logout,
+            updateAuthData,
+        ]
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

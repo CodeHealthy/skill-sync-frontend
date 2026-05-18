@@ -55,7 +55,8 @@
   --radius-xl: 14px;
   --radius-2xl: 22px;
 
-  --font-family-base: Arial, Helvetica, sans-serif;
+  --font-family-base: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-family-code: "JetBrains Mono", "Fira Code", Consolas, Monaco, "Courier New", monospace;
   --transition-fast: 0.15s ease;
 }
 
@@ -68,11 +69,27 @@ body {
   font-family: var(--font-family-base);
   background: var(--color-bg);
   color: var(--color-text);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+
+.navbar-logo-image {
+  height: 38px;
+  width: auto;
+  display: block;
 }
 
 .navbar {
@@ -981,6 +998,31 @@ textarea {
     border-radius: 14px;
   }
 
+  .profile-page {
+    max-width: 1100px;
+  }
+
+  .profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    background: var(--color-surface-subtle);
+    color: var(--color-text-soft);
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 900px) {
+    .profile-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
   .page-container {
     padding: 24px;
   }
@@ -1134,10 +1176,20 @@ textarea {
 }
 
 .code-textarea {
-  font-family: Consolas, Monaco, "Courier New", monospace;
+  font-family: var(--font-family-code);
   background: var(--color-code-bg);
   color: var(--color-code-text);
   line-height: 1.5;
+}
+
+
+code,
+pre,
+.code-block pre,
+.detail-panel pre,
+.result-card pre,
+.hero-code-preview pre {
+  font-family: var(--font-family-code);
 }
 
 .admin-page {
@@ -1823,5 +1875,159 @@ textarea {
   .modal-cancel-button,
   .modal-confirm-button {
     width: 100%;
+  }
+}
+
+.auth-helper-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.auth-helper-row a,
+.text-button {
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.text-button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.text-button:hover:not(:disabled),
+.auth-helper-row a:hover {
+  text-decoration: underline;
+}
+
+.text-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.auth-result-card {
+  text-align: center;
+}
+
+.auth-result-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  margin: 0 auto 18px;
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  font-weight: 900;
+}
+
+.auth-result-icon.success {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.auth-result-icon.error {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.auth-info-box {
+  margin-top: 18px;
+}
+
+.single-link-row {
+  justify-content: flex-start;
+}
+
+.verification-resend-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 12px;
+  border-radius: var(--radius-lg);
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
+.verification-resend-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.verification-resend-icon {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  margin-top: 1px;
+  border-radius: 999px;
+  color: #f59e0b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.verification-resend-icon svg {
+  display: block;
+}
+
+.verification-resend-content p {
+  margin: 0 0 1px;
+  color: #78350f;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.verification-resend-content span {
+  display: block;
+  color: #92400e;
+  font-size: 12.5px;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.verification-resend-button {
+  border: 1px solid #fcd34d;
+  white-space: nowrap;
+  cursor: pointer;
+  border-radius: 10px;
+  padding: 7px 11px;
+  background: #ffffff;
+  color: #92400e;
+  font-size: 12.5px;
+  font-weight: 900;
+  transition: var(--transition-fast);
+}
+
+.verification-resend-button:hover:not(:disabled) {
+  background: #fef3c7;
+}
+
+.verification-resend-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+@media (max-width: 520px) {
+  .verification-resend-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .verification-resend-button {
+    width: fit-content;
   }
 }

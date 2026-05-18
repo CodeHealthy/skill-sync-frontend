@@ -25,8 +25,7 @@ function Navbar() {
         <nav className="navbar">
             <div className="navbar-top-row">
                 <Link to="/" className="navbar-brand" onClick={closeMenu}>
-                    <span className="navbar-logo-mark">S</span>
-                    <span>SkillSync</span>
+                    <img src="/logo-white.svg" alt="SkillSync" className="navbar-logo-image" />
                 </Link>
 
                 <button
@@ -63,13 +62,18 @@ function Navbar() {
                     )}
 
                     {isAuthenticated && (
-                        <NavLink
-                            to={dashboardPath}
-                            className="navbar-link"
-                            onClick={closeMenu}
-                        >
-                            {dashboardLabel}
-                        </NavLink>
+                        <>
+                            <NavLink
+                                to={dashboardPath}
+                                className="navbar-link"
+                                onClick={closeMenu}
+                            >
+                                {dashboardLabel}
+                            </NavLink>
+                            <NavLink to="/profile" className="navbar-link" onClick={closeMenu}>
+                                Profile
+                            </NavLink>
+                        </>
                     )}
                 </div>
 

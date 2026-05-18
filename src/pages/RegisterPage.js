@@ -3,7 +3,7 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { getApiErrorMessage } from "../utils/errorUtils";
 import { getPasswordChecks, isStrongPassword } from "../utils/passwordUtils";
-import { showError, showSuccess, showWarning } from "../utils/toastUtils";
+import { showError, showWarning } from "../utils/toastUtils";
 
 function RegisterPage() {
     const { register, isAuthenticated, user } = useAuth();
@@ -110,15 +110,17 @@ function RegisterPage() {
         }
 
         try {
-            const authData = await register(payload);
+            const response = await register(payload);
 
-            showSuccess("Account created successfully.");
-
-            if (authData.role === "ADMIN") {
-                navigate("/admin", { replace: true });
-            } else {
-                navigate("/candidate", { replace: true });
-            }
+            navigate("/login", {
+                replace: true,
+                state: {
+                    registrationEmail: payload.email,
+                    registrationMessage:
+                        response?.message ||
+                        "Account created. Please check your email to verify your account.",
+                },
+            });
         } catch (err) {
             showError(getApiErrorMessage(err, "Registration failed"));
         } finally {
@@ -139,7 +141,7 @@ function RegisterPage() {
                         type="text"
                         value={formData.fullName}
                         onChange={handleChange}
-                        placeholder="Your Fullname"
+                        placeholder="Muhammad Yeshar"
                         autoComplete="name"
                         required
                     />
@@ -150,7 +152,7 @@ function RegisterPage() {
                         type="email"
                         value={formData.email}
                         onChange={handleChange}
-                        placeholder="Your Email Address"
+                        placeholder="user@skillsync.com"
                         autoComplete="email"
                         required
                     />

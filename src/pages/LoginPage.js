@@ -1,6 +1,7 @@
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { authApi } from "../api/authApi";
 import { getApiErrorMessage } from "../utils/errorUtils";
 import { showError, showSuccess, showWarning } from "../utils/toastUtils";
 
@@ -25,6 +26,14 @@ function LoginPage() {
     });
 
     const [submitting, setSubmitting] = useState(false);
+    const [resendingVerification, setResendingVerification] = useState(false);
+    const [showResendVerification, setShowResendVerification] = useState(false);
+    const [unverifiedEmail, setUnverifiedEmail] = useState("");
+    const [resendCooldownSeconds, setResendCooldownSeconds] = useState(0);
+
+    const registrationEmail = location.state?.registrationEmail;
+    const registrationMessage = location.state?.registrationMessage;
+    const registrationToastShownRef = useRef(false);
 
     useEffect(() => {
         const authMessage = sessionStorage.getItem("skillsync_auth_message");
@@ -34,6 +43,18 @@ function LoginPage() {
             sessionStorage.removeItem("skillsync_auth_message");
         }
 
+        if (registrationMessage && !registrationToastShownRef.current) {
+            registrationToastShownRef.current = true;
+            showSuccess(registrationMessage);
+
+            navigate("/login", {
+                replace: true,
+                state: {
+                    registrationEmail,
+                },
+            });
+        }
+
         const oauthError = new URLSearchParams(location.search).get("oauthError");
         const oauthMessage = new URLSearchParams(location.search).get("message");
 
@@ -41,7 +62,19 @@ function LoginPage() {
             showError(oauthMessage || "Google login failed. Please try again.");
             navigate("/login", { replace: true });
         }
-    }, [location.search, navigate]);
+    }, [location.search, navigate, registrationMessage, registrationEmail]);
+
+    useEffect(() => {
+        if (resendCooldownSeconds <= 0) {
+            return undefined;
+        }
+
+        const timer = setInterval(() => {
+            setResendCooldownSeconds((current) => Math.max(current - 1, 0));
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [resendCooldownSeconds]);
 
     if (isAuthenticated) {
         if (user?.role === "ADMIN") {
@@ -60,6 +93,11 @@ function LoginPage() {
             ...current,
             [event.target.name]: event.target.value,
         }));
+
+        if (event.target.name === "email") {
+            setShowResendVerification(false);
+            setUnverifiedEmail("");
+        }
     };
 
     const handleSubmit = async (event) => {
@@ -70,10 +108,14 @@ function LoginPage() {
         }
 
         setSubmitting(true);
+        setShowResendVerification(false);
+        setUnverifiedEmail("");
+
+        const loginEmail = formData.email.trim().toLowerCase();
 
         try {
             const authData = await login({
-                email: formData.email.trim().toLowerCase(),
+                email: loginEmail,
                 password: formData.password,
             });
 
@@ -92,7 +134,14 @@ function LoginPage() {
                 navigate("/candidate", { replace: true });
             }
         } catch (err) {
-            showError(getApiErrorMessage(err, "Invalid email or password"));
+            const message = getApiErrorMessage(err, "Invalid email or password");
+
+            showError(message);
+
+            if (message.toLowerCase().includes("verify your email")) {
+                setShowResendVerification(true);
+                setUnverifiedEmail(loginEmail);
+            }
         } finally {
             setSubmitting(false);
         }
@@ -100,6 +149,45 @@ function LoginPage() {
 
     const handleGoogleLogin = () => {
         window.location.href = googleOAuthUrl;
+    };
+
+    const handleResendVerification = async () => {
+        if (resendCooldownSeconds > 0) {
+            return;
+        }
+
+        const email = unverifiedEmail || formData.email.trim().toLowerCase();
+
+        if (!email) {
+            showWarning("Enter your email first.");
+            return;
+        }
+
+        setResendingVerification(true);
+
+        try {
+            const response = await authApi.resendVerification({
+                email,
+            });
+
+            setResendCooldownSeconds(60);
+            showSuccess(response.data?.message || "Verification email sent.");
+        } catch (err) {
+            const message = getApiErrorMessage(
+                err,
+                "Failed to resend verification email"
+            );
+
+            showError(message);
+
+            const match = message.match(/wait\s+(\d+)\s+seconds/i);
+
+            if (match?.[1]) {
+                setResendCooldownSeconds(Number(match[1]));
+            }
+        } finally {
+            setResendingVerification(false);
+        }
     };
 
     return (
@@ -138,6 +226,43 @@ function LoginPage() {
                     >
                         {submitting ? "Logging in..." : "Login"}
                     </button>
+
+                    <div className="auth-helper-row single-link-row">
+                        <Link to="/forgot-password">Forgot password?</Link>
+                    </div>
+
+                    {showResendVerification && (
+                        <div className="verification-resend-panel">
+                            <div className="verification-resend-content">
+                                <span className="verification-resend-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 20 20" width="14" height="14">
+                                        <path
+                                            fill="currentColor"
+                                            d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm0 3.5c.46 0 .82.36.82.82v4.36a.82.82 0 0 1-1.64 0V6.32c0-.46.36-.82.82-.82Zm0 9.1a1.05 1.05 0 1 1 0-2.1 1.05 1.05 0 0 1 0 2.1Z"
+                                        />
+                                    </svg>
+                                </span>
+
+                                <div>
+                                    <p>Email verification required</p>
+                                    <span>Verify your email to continue signing in.</span>
+                                </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="verification-resend-button"
+                                onClick={handleResendVerification}
+                                disabled={resendingVerification || resendCooldownSeconds > 0}
+                            >
+                                {resendingVerification
+                                    ? "Sending..."
+                                    : resendCooldownSeconds > 0
+                                        ? `Resend in ${resendCooldownSeconds}s`
+                                        : "Resend email"}
+                            </button>
+                        </div>
+                    )}
 
                     {googleOAuthEnabled && (
                         <>
