@@ -139,7 +139,7 @@ function RegisterPage() {
                         type="text"
                         value={formData.fullName}
                         onChange={handleChange}
-                        placeholder="Muhammad Yeshar"
+                        placeholder="Your Fullname"
                         autoComplete="name"
                         required
                     />
@@ -150,7 +150,7 @@ function RegisterPage() {
                         type="email"
                         value={formData.email}
                         onChange={handleChange}
-                        placeholder="user@skillsync.com"
+                        placeholder="Your Email Address"
                         autoComplete="email"
                         required
                     />

@@ -18,6 +18,8 @@ import CandidateDashboard from "./pages/CandidateDashboard";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 import NotFoundPage from "./pages/NotFoundPage";
 
+import OAuthSuccessPage from "./pages/OAuthSuccessPage";
+
 function App() {
   return (
     <BrowserRouter>
@@ -42,6 +44,7 @@ function App() {
 
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
           <Route path="*" element={<NotFoundPage />} />
+          <Route path="/oauth-success" element={<OAuthSuccessPage />} />
         </Routes>
         <ToastContainer
           position="top-right"

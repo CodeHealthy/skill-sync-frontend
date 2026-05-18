@@ -33,7 +33,15 @@ function LoginPage() {
             showWarning("Session expired. Please log in again.");
             sessionStorage.removeItem("skillsync_auth_message");
         }
-    }, []);
+
+        const oauthError = new URLSearchParams(location.search).get("oauthError");
+        const oauthMessage = new URLSearchParams(location.search).get("message");
+
+        if (oauthError === "true") {
+            showError(oauthMessage || "Google login failed. Please try again.");
+            navigate("/login", { replace: true });
+        }
+    }, [location.search, navigate]);
 
     if (isAuthenticated) {
         if (user?.role === "ADMIN") {
