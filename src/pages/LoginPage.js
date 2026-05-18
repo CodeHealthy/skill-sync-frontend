@@ -1,12 +1,23 @@
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getApiErrorMessage } from "../utils/errorUtils";
 import { showError, showSuccess, showWarning } from "../utils/toastUtils";
 
 function LoginPage() {
     const { login, isAuthenticated, user } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+
+    const googleOAuthEnabled =
+        process.env.REACT_APP_GOOGLE_OAUTH_ENABLED === "true";
+
+    const googleOAuthUrl = useMemo(() => {
+        const apiBaseUrl =
+            process.env.REACT_APP_API_BASE_URL || "http://localhost:8080/api";
+
+        return `${apiBaseUrl.replace(/\/api\/?$/, "")}/oauth2/authorization/google`;
+    }, []);
 
     const [formData, setFormData] = useState({
         email: "",
@@ -45,10 +56,18 @@ function LoginPage() {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
+
+        if (submitting) {
+            return;
+        }
+
         setSubmitting(true);
 
         try {
-            const authData = await login(formData);
+            const authData = await login({
+                email: formData.email.trim().toLowerCase(),
+                password: formData.password,
+            });
 
             showSuccess("Logged in successfully.");
 
@@ -65,15 +84,14 @@ function LoginPage() {
                 navigate("/candidate", { replace: true });
             }
         } catch (err) {
-            const message =
-                err.response?.data?.message ||
-                err.response?.data?.error ||
-                "Invalid email or password";
-
-            showError(message);
+            showError(getApiErrorMessage(err, "Invalid email or password"));
         } finally {
             setSubmitting(false);
         }
+    };
+
+    const handleGoogleLogin = () => {
+        window.location.href = googleOAuthUrl;
     };
 
     return (
@@ -90,6 +108,7 @@ function LoginPage() {
                         value={formData.email}
                         onChange={handleChange}
                         placeholder="admin@skillsync.com"
+                        autoComplete="email"
                         required
                     />
 
@@ -99,13 +118,36 @@ function LoginPage() {
                         type="password"
                         value={formData.password}
                         onChange={handleChange}
-                        placeholder="password123"
+                        placeholder="Enter your password"
+                        autoComplete="current-password"
                         required
                     />
 
-                    <button type="submit" className="primary-button" disabled={submitting}>
+                    <button
+                        type="submit"
+                        className="primary-button"
+                        disabled={submitting}
+                    >
                         {submitting ? "Logging in..." : "Login"}
                     </button>
+
+                    {googleOAuthEnabled && (
+                        <>
+                            <div className="auth-divider">
+                                <span>or</span>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="google-auth-button"
+                                onClick={handleGoogleLogin}
+                                disabled={submitting}
+                            >
+                                <span className="google-auth-icon">G</span>
+                                Continue with Google
+                            </button>
+                        </>
+                    )}
                 </form>
 
                 <p className="small-text">

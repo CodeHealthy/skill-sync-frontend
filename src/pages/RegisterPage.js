@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { getApiErrorMessage } from "../utils/errorUtils";
+import { getPasswordChecks, isStrongPassword } from "../utils/passwordUtils";
 import { showError, showSuccess, showWarning } from "../utils/toastUtils";
 
 function RegisterPage() {
@@ -11,12 +13,17 @@ function RegisterPage() {
         fullName: "",
         email: "",
         password: "",
+        confirmPassword: "",
         role: "CANDIDATE",
         organizationName: "",
     });
 
-    const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
+
+    const passwordChecks = useMemo(
+        () => getPasswordChecks(formData.password),
+        [formData.password]
+    );
 
     if (isAuthenticated) {
         if (user?.role === "ADMIN") {
@@ -47,25 +54,58 @@ function RegisterPage() {
         });
     };
 
+    const validateForm = () => {
+        if (!formData.fullName.trim()) {
+            showWarning("Full name is required.");
+            return false;
+        }
+
+        if (!formData.email.trim()) {
+            showWarning("Email is required.");
+            return false;
+        }
+
+        if (!isStrongPassword(formData.password)) {
+            showWarning(
+                "Password must include 10+ characters, uppercase, lowercase, number, and special character."
+            );
+            return false;
+        }
+
+        if (formData.password !== formData.confirmPassword) {
+            showWarning("Passwords do not match.");
+            return false;
+        }
+
+        if (formData.role === "ADMIN" && !formData.organizationName.trim()) {
+            showWarning("Organization name is required for admin registration.");
+            return false;
+        }
+
+        return true;
+    };
+
     const handleSubmit = async (event) => {
         event.preventDefault();
-        setError("");
+
+        if (submitting) {
+            return;
+        }
+
+        if (!validateForm()) {
+            return;
+        }
+
         setSubmitting(true);
 
         const payload = {
-            fullName: formData.fullName,
-            email: formData.email,
+            fullName: formData.fullName.trim(),
+            email: formData.email.trim().toLowerCase(),
             password: formData.password,
             role: formData.role,
         };
 
         if (formData.role === "ADMIN") {
-            if (!formData.organizationName.trim()) {
-                showWarning("Organization name is required for admin registration.");
-                setSubmitting(false);
-                return;
-            }
-
             payload.organizationName = formData.organizationName.trim();
         }
 
@@ -80,12 +120,7 @@ function RegisterPage() {
                 navigate("/candidate", { replace: true });
             }
         } catch (err) {
-            const message =
-                err.response?.data?.message ||
-                err.response?.data?.error ||
-                "Registration failed";
-
-            showError(message);
+            showError(getApiErrorMessage(err, "Registration failed"));
         } finally {
             setSubmitting(false);
         }
@@ -97,8 +132,6 @@ function RegisterPage() {
                 <h2>Register</h2>
                 <p>Create a recruiter or candidate account.</p>
 
-                {error && <div className="error-box">{error}</div>}
-
                 <form onSubmit={handleSubmit}>
                     <label>Full Name</label>
                     <input
@@ -107,6 +140,7 @@ function RegisterPage() {
                         value={formData.fullName}
                         onChange={handleChange}
                         placeholder="Muhammad Yeshar"
+                        autoComplete="name"
                         required
                     />
 
@@ -117,6 +151,7 @@ function RegisterPage() {
                         value={formData.email}
                         onChange={handleChange}
                         placeholder="user@skillsync.com"
+                        autoComplete="email"
                         required
                     />
 
@@ -126,9 +161,51 @@ function RegisterPage() {
                         type="password"
                         value={formData.password}
                         onChange={handleChange}
-                        placeholder="Minimum 6 characters"
+                        placeholder="Create a strong password"
+                        autoComplete="new-password"
                         required
                     />
+
+                    <div className="password-checklist">
+                        {passwordChecks.map((check) => (
+                            <div
+                                key={check.key}
+                                className={
+                                    check.passed
+                                        ? "password-check passed"
+                                        : "password-check"
+                                }
+                            >
+                                <span>{check.passed ? "✓" : "•"}</span>
+                                {check.label}
+                            </div>
+                        ))}
+                    </div>
+
+                    <label>Confirm Password</label>
+                    <input
+                        name="confirmPassword"
+                        type="password"
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
+                        placeholder="Re-enter your password"
+                        autoComplete="new-password"
+                        required
+                    />
+
+                    {formData.confirmPassword && (
+                        <p
+                            className={
+                                formData.password === formData.confirmPassword
+                                    ? "field-hint success-hint"
+                                    : "field-hint error-hint"
+                            }
+                        >
+                            {formData.password === formData.confirmPassword
+                                ? "Passwords match."
+                                : "Passwords do not match."}
+                        </p>
+                    )}
 
                     <label>Role</label>
                     <select name="role" value={formData.role} onChange={handleChange}>
@@ -145,12 +222,17 @@ function RegisterPage() {
                                 value={formData.organizationName}
                                 onChange={handleChange}
                                 placeholder="Acme Hiring Team"
+                                autoComplete="organization"
                                 required
                             />
                         </>
                     )}
 
-                    <button type="submit" className="primary-button" disabled={submitting}>
+                    <button
+                        type="submit"
+                        className="primary-button"
+                        disabled={submitting}
+                    >
                         {submitting ? "Creating account..." : "Create Account"}
                     </button>
                 </form>

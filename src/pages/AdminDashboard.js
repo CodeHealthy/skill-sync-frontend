@@ -10,6 +10,7 @@ import AssignmentDetailsPanel from "../components/admin/AssignmentDetailsPanel";
 import AssignmentResultsTable from "../components/admin/AssignmentResultsTable";
 import CandidateInviteForm from "../components/admin/CandidateInviteForm";
 import CandidateTable from "../components/admin/CandidateTable";
+import ConfirmModal from "../components/common/ConfirmModal";
 import { ADMIN_PAGE_SIZE } from "../constants/pagination";
 import { getDefaultStarterCode } from "../constants/starterCode";
 import { getApiErrorMessage } from "../utils/errorUtils";
@@ -68,6 +69,7 @@ function AdminDashboard() {
     const [assigningAssessment, setAssigningAssessment] = useState(false);
     const [gradingAssignmentId, setGradingAssignmentId] = useState(null);
     const [executingAssignmentId, setExecutingAssignmentId] = useState(null);
+    const [confirmAction, setConfirmAction] = useState(null);
 
     const fetchDashboardData = async () => {
         setLoadingDashboard(true);
@@ -231,6 +233,17 @@ function AdminDashboard() {
         (assignment) => assignment.id === expandedAssignmentId
     );
 
+    const confirmLoading =
+        assigningAssessment ||
+        Boolean(gradingAssignmentId) ||
+        Boolean(executingAssignmentId);
+
+    const closeConfirmModal = () => {
+        if (!confirmLoading) {
+            setConfirmAction(null);
+        }
+    };
+
     const handleCandidateChange = (event) => {
         setCandidateForm((current) => ({
             ...current,
@@ -344,9 +357,7 @@ function AdminDashboard() {
         }
     };
 
-    const handleAssignAssessment = async (event) => {
-        event.preventDefault();
-
+    const handleAssignAssessment = async () => {
         if (assigningAssessment) {
             return;
         }
@@ -361,6 +372,7 @@ function AdminDashboard() {
                 assessmentId: "",
             });
 
+            setConfirmAction(null);
             showSuccess("Assessment assigned successfully.");
             await fetchDashboardData();
         } catch (err) {
@@ -368,6 +380,26 @@ function AdminDashboard() {
         } finally {
             setAssigningAssessment(false);
         }
+    };
+
+    const requestAssignAssessment = (event) => {
+        event.preventDefault();
+
+        const selectedCandidate = candidates.find(
+            (candidate) => candidate.id === assignForm.candidateId
+        );
+
+        const selectedAssessment = assessments.find(
+            (assessment) => assessment.id === assignForm.assessmentId
+        );
+
+        setConfirmAction({
+            title: "Assign assessment?",
+            message: `Assign "${selectedAssessment?.title || "this assessment"}" to ${selectedCandidate?.name || "this candidate"
+                }?`,
+            confirmText: "Assign Assessment",
+            onConfirm: handleAssignAssessment,
+        });
     };
 
     const handleGradeAssignment = async (assignmentId) => {
@@ -391,6 +423,7 @@ function AdminDashboard() {
             });
 
             showSuccess("Assignment graded successfully.");
+            setConfirmAction(null);
 
             setGradeForms((current) => ({
                 ...current,
@@ -408,6 +441,25 @@ function AdminDashboard() {
         }
     };
 
+    const requestGradeAssignment = (assignmentId) => {
+        const gradeForm = gradeForms[assignmentId];
+
+        if (!gradeForm || gradeForm.score === undefined || gradeForm.score === "") {
+            showWarning("Score is required before grading.");
+            return;
+        }
+
+        const assignment = assignments.find((item) => item.id === assignmentId);
+
+        setConfirmAction({
+            title: "Save manual grade?",
+            message: `Save score ${gradeForm.score} for ${assignment?.candidateName || "this candidate"
+                } on "${assignment?.assessmentTitle || "this assessment"}"?`,
+            confirmText: "Save Grade",
+            onConfirm: () => handleGradeAssignment(assignmentId),
+        });
+    };
+
     const handleExecuteAssignment = async (assignmentId) => {
         if (executingAssignmentId) {
             return;
@@ -419,12 +471,25 @@ function AdminDashboard() {
             await assessmentApi.executeAssignment(assignmentId);
 
             showSuccess("Code executed and automatically graded.");
+            setConfirmAction(null);
             await fetchDashboardData();
         } catch (err) {
             showError(getApiErrorMessage(err, "Failed to execute code"));
         } finally {
             setExecutingAssignmentId(null);
         }
+    };
+
+    const requestExecuteAssignment = (assignmentId) => {
+        const assignment = assignments.find((item) => item.id === assignmentId);
+
+        setConfirmAction({
+            title: "Run Docker grading?",
+            message: `Execute and auto-grade "${assignment?.assessmentTitle || "this coding challenge"
+                }" for ${assignment?.candidateName || "this candidate"}?`,
+            confirmText: "Run Grading",
+            onConfirm: () => handleExecuteAssignment(assignmentId),
+        });
     };
 
     const handleToggleAssignmentDetails = (assignmentId) => {
@@ -483,7 +548,7 @@ function AdminDashboard() {
                     assignForm={assignForm}
                     assigningAssessment={assigningAssessment}
                     onAssignChange={handleAssignChange}
-                    onAssignAssessment={handleAssignAssessment}
+                    onAssignAssessment={requestAssignAssessment}
                 />
             </div>
 
@@ -531,7 +596,7 @@ function AdminDashboard() {
                     onAssignmentLanguageFilterChange={setAssignmentLanguageFilter}
                     onPageChange={setAssignmentPage}
                     onToggleDetails={handleToggleAssignmentDetails}
-                    onExecuteAssignment={handleExecuteAssignment}
+                    onExecuteAssignment={requestExecuteAssignment}
                 />
 
                 {expandedAssignmentId && (
@@ -540,10 +605,21 @@ function AdminDashboard() {
                         gradeForms={gradeForms}
                         gradingAssignmentId={gradingAssignmentId}
                         onGradeChange={handleGradeChange}
-                        onGradeAssignment={handleGradeAssignment}
+                        onGradeAssignment={requestGradeAssignment}
                     />
                 )}
             </div>
+
+            <ConfirmModal
+                open={Boolean(confirmAction)}
+                title={confirmAction?.title}
+                message={confirmAction?.message}
+                confirmText={confirmAction?.confirmText}
+                danger={confirmAction?.danger}
+                loading={confirmLoading}
+                onCancel={closeConfirmModal}
+                onConfirm={confirmAction?.onConfirm}
+            />
         </div>
     );
 }
