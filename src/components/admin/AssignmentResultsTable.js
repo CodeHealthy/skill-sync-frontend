@@ -81,6 +81,7 @@ function AssignmentResultsTable({
                             <th>Language</th>
                             <th>Status</th>
                             <th>Execution</th>
+                            <th>Tests</th>
                             <th>Score</th>
                             <th>Submitted</th>
                             <th>Actions</th>
@@ -88,74 +89,124 @@ function AssignmentResultsTable({
                     </thead>
 
                     <tbody>
-                        {assignments.map((assignment) => (
-                            <tr key={assignment.id}>
-                                <td>
-                                    <div className="primary-cell">
-                                        {assignment.candidateName}
-                                    </div>
-                                    <div className="muted-cell">
-                                        {assignment.candidateEmail}
-                                    </div>
-                                </td>
+                        {assignments.map((assignment) => {
+                            const testCaseResults = Array.isArray(
+                                assignment.testCaseResults
+                            )
+                                ? assignment.testCaseResults
+                                : [];
 
-                                <td>
-                                    <div className="primary-cell">
-                                        {assignment.assessmentTitle}
-                                    </div>
-                                    <div className="muted-cell">
-                                        {assignment.assessmentType}
-                                    </div>
-                                </td>
+                            const passedTests = testCaseResults.filter(
+                                (result) => result.passed
+                            ).length;
 
-                                <td>{formatLanguage(assignment.language)}</td>
+                            const totalTests =
+                                testCaseResults.length ||
+                                (Array.isArray(assignment.testCases)
+                                    ? assignment.testCases.length
+                                    : 0);
 
-                                <td>
-                                    <StatusBadge value={assignment.status} />
-                                </td>
+                            return (
+                                <tr key={assignment.id}>
+                                    <td>
+                                        <div className="primary-cell">
+                                            {assignment.candidateName}
+                                        </div>
+                                        <div className="muted-cell">
+                                            {assignment.candidateEmail}
+                                        </div>
+                                    </td>
 
-                                <td>
-                                    <StatusBadge value={assignment.executionStatus || "NOT_RUN"} />
-                                </td>
+                                    <td>
+                                        <div className="primary-cell">
+                                            {assignment.assessmentTitle}
+                                        </div>
+                                        <div className="muted-cell">
+                                            {assignment.assessmentType}
+                                        </div>
+                                    </td>
 
-                                <td>{assignment.score ?? "—"}</td>
+                                    <td>{formatLanguage(assignment.language)}</td>
 
-                                <td>{formatDate(assignment.submittedAt)}</td>
+                                    <td>
+                                        <StatusBadge value={assignment.status} />
+                                    </td>
 
-                                <td>
-                                    <div className="table-actions">
-                                        {assignment.status === "SUBMITTED" &&
-                                            assignment.assessmentType === "CODING_CHALLENGE" && (
-                                                <button
-                                                    className="primary-button small-button"
-                                                    onClick={() => onExecuteAssignment(assignment.id)}
-                                                    disabled={
-                                                        executingAssignmentId === assignment.id ||
-                                                        Boolean(executingAssignmentId)
-                                                    }
-                                                >
-                                                    {executingAssignmentId === assignment.id
-                                                        ? "Running..."
-                                                        : "Run"}
-                                                </button>
-                                            )}
+                                    <td>
+                                        <StatusBadge value={assignment.executionStatus || "NOT_RUN"} />
+                                    </td>
 
-                                        <button
-                                            className="secondary-button small-button"
-                                            onClick={() => onToggleDetails(assignment.id)}
-                                        >
-                                            {expandedAssignmentId === assignment.id
-                                                ? "Hide"
-                                                : "Details"}
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
+                                    <td>
+                                        {assignment.assessmentType === "CODING_CHALLENGE" ? (
+                                            <div>
+                                                <div className="primary-cell">
+                                                    {testCaseResults.length > 0
+                                                        ? `${passedTests}/${testCaseResults.length}`
+                                                        : totalTests > 0
+                                                            ? `${totalTests} configured`
+                                                            : "—"}
+                                                </div>
+                                                <div className="muted-cell">
+                                                    {testCaseResults.length > 0
+                                                        ? `${passedTests === 1 ? "test" : "tests"} passed`
+                                                        : "not executed"}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <span className="muted-cell">
+                                                Not applicable
+                                            </span>
+                                        )}
+                                    </td>
+
+                                    <td>
+                                        {assignment.score !== null &&
+                                            assignment.score !== undefined
+                                            ? `${assignment.score}/${assignment.maxScore || 100}`
+                                            : "—"}
+                                    </td>
+
+                                    <td>{formatDate(assignment.submittedAt)}</td>
+
+                                    <td>
+                                        <div className="table-actions">
+                                            {assignment.status === "SUBMITTED" &&
+                                                assignment.assessmentType === "CODING_CHALLENGE" && (
+                                                    <button
+                                                        className="primary-button small-button"
+                                                        onClick={() =>
+                                                            onExecuteAssignment(assignment.id)
+                                                        }
+                                                        disabled={
+                                                            executingAssignmentId ===
+                                                            assignment.id ||
+                                                            Boolean(executingAssignmentId)
+                                                        }
+                                                    >
+                                                        {executingAssignmentId ===
+                                                            assignment.id
+                                                            ? "Running..."
+                                                            : "Run"}
+                                                    </button>
+                                                )}
+
+                                            <button
+                                                className="secondary-button small-button"
+                                                onClick={() => onToggleDetails(assignment.id)}
+                                            >
+                                                {expandedAssignmentId === assignment.id
+                                                    ? "Hide"
+                                                    : "Details"}
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            );
+                        })}
 
                         {assignments.length === 0 && (
                             <EmptyTableRow
-                                colSpan={8}
+                                colSpan={9}
                                 message="No assignment results found."
                             />
                         )}

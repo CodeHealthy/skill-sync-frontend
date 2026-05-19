@@ -226,17 +226,27 @@ function CandidateDashboard() {
                 [assignment.id]: result,
             }));
 
-            if (result.timedOut) {
-                showWarning("Code execution timed out. Check the Run Result panel.");
+            const totalTests = result.totalTests || 0;
+            const passedTests = result.passedTests || 0;
+
+            if (totalTests === 0) {
+                showWarning("No sample test cases were available.");
                 return;
             }
 
-            if (result.exitCode !== 0) {
-                showWarning("Code ran with errors. Check the Run Result panel.");
+            if (passedTests === totalTests) {
+                showSuccess("All visible sample tests passed.");
                 return;
             }
 
-            showSuccess("Code executed successfully.");
+            if (passedTests > 0) {
+                showWarning(
+                    `${passedTests}/${totalTests} visible sample tests passed. Check the Run Result panel.`
+                );
+                return;
+            }
+
+            showWarning("Visible sample tests failed. Check the Run Result panel.");
         } catch (err) {
             showError(getApiErrorMessage(err, "Failed to run code"));
         } finally {

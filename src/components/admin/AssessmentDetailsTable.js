@@ -60,26 +60,75 @@ function AssessmentDetailsTable({
                             <th>Type</th>
                             <th>Language</th>
                             <th>Max Score</th>
+                            <th>Test Cases</th>
                             <th>Description</th>
                         </tr>
                     </thead>
+
                     <tbody>
-                        {assessments.map((assessment) => (
-                            <tr key={assessment.id}>
-                                <td>{assessment.title}</td>
-                                <td>
-                                    <StatusBadge value={assessment.type} />
-                                </td>
-                                <td>{formatLanguage(assessment.language)}</td>
-                                <td>{assessment.maxScore}</td>
-                                <td className="muted-cell">
-                                    {assessment.description || "No description"}
-                                </td>
-                            </tr>
-                        ))}
+                        {assessments.map((assessment) => {
+                            const testCases = Array.isArray(assessment.testCases)
+                                ? assessment.testCases
+                                : [];
+
+                            const visibleTestCases = testCases.filter(
+                                (testCase) => !testCase.hidden
+                            );
+
+                            const hiddenTestCases = testCases.filter(
+                                (testCase) => testCase.hidden
+                            );
+
+                            return (
+                                <tr key={assessment.id}>
+                                    <td>
+                                        <div className="primary-cell">
+                                            {assessment.title}
+                                        </div>
+
+                                        <div className="muted-cell">
+                                            {assessment.prompt
+                                                ? `${assessment.prompt.slice(0, 90)}${assessment.prompt.length > 90
+                                                    ? "..."
+                                                    : ""
+                                                }`
+                                                : "No prompt"}
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <StatusBadge value={assessment.type} />
+                                    </td>
+
+                                    <td>{formatLanguage(assessment.language)}</td>
+
+                                    <td>{assessment.maxScore}</td>
+
+                                    <td>
+                                        {assessment.type === "CODING_CHALLENGE" ? (
+                                            <div>
+                                                <div className="primary-cell">
+                                                    {testCases.length} total
+                                                </div>
+                                                <div className="muted-cell">
+                                                    {visibleTestCases.length} visible /{" "}
+                                                    {hiddenTestCases.length} hidden
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <span className="muted-cell">Not applicable</span>
+                                        )}
+                                    </td>
+
+                                    <td className="muted-cell">
+                                        {assessment.description || "No description"}
+                                    </td>
+                                </tr>
+                            );
+                        })}
 
                         {assessments.length === 0 && (
-                            <EmptyTableRow colSpan={5} message="No assessments found." />
+                            <EmptyTableRow colSpan={6} message="No assessments found." />
                         )}
                     </tbody>
                 </table>

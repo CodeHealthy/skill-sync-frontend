@@ -10,12 +10,53 @@ import AssignmentDetailsPanel from "../components/admin/AssignmentDetailsPanel";
 import AssignmentResultsTable from "../components/admin/AssignmentResultsTable";
 import CandidateInviteForm from "../components/admin/CandidateInviteForm";
 import CandidateTable from "../components/admin/CandidateTable";
+import AiAssessmentGeneratorModal from "../components/admin/AiAssessmentGeneratorModal";
 import ConfirmModal from "../components/common/ConfirmModal";
 import { ADMIN_PAGE_SIZE } from "../constants/pagination";
 import { getDefaultStarterCode } from "../constants/starterCode";
 import { getApiErrorMessage } from "../utils/errorUtils";
 import { paginate } from "../utils/paginationUtils";
 import { showError, showSuccess, showWarning } from "../utils/toastUtils";
+
+const createDefaultTestCase = (index = 1, maxScore = 100) => ({
+    name: index === 1 ? "Sample case" : `Test case ${index}`,
+    input: "",
+    expectedOutput: "",
+    hidden: index !== 1,
+    points: index === 1 ? maxScore : 0,
+});
+
+const createInitialAssessmentForm = () => ({
+    title: "",
+    description: "",
+    type: "CODING_CHALLENGE",
+    language: "JAVA",
+    maxScore: 100,
+    prompt: "",
+    starterCode: getDefaultStarterCode("JAVA"),
+    expectedOutput: "Hello SkillSync",
+    testCases: [
+        {
+            name: "Sample case",
+            input: "",
+            expectedOutput: "Hello SkillSync",
+            hidden: false,
+            points: 100,
+        },
+    ],
+});
+
+const normalizeTestCasesForSubmit = (testCases) => {
+    return (testCases || [])
+        .filter((testCase) => testCase?.expectedOutput?.trim())
+        .map((testCase, index) => ({
+            name: testCase.name?.trim() || `Test case ${index + 1}`,
+            input: testCase.input || "",
+            expectedOutput: testCase.expectedOutput.trim(),
+            hidden: Boolean(testCase.hidden),
+            points: Number(testCase.points || 0),
+        }));
+};
 
 function AdminDashboard() {
     const { user } = useAuth();
@@ -25,16 +66,9 @@ function AdminDashboard() {
         email: "",
     });
 
-    const [assessmentForm, setAssessmentForm] = useState({
-        title: "",
-        description: "",
-        type: "CODING_CHALLENGE",
-        language: "JAVA",
-        maxScore: 100,
-        prompt: "",
-        starterCode: getDefaultStarterCode("JAVA"),
-        expectedOutput: "Hello SkillSync",
-    });
+    const [assessmentForm, setAssessmentForm] = useState(
+        createInitialAssessmentForm
+    );
 
     const [assignForm, setAssignForm] = useState({
         candidateId: "",
@@ -70,6 +104,9 @@ function AdminDashboard() {
     const [gradingAssignmentId, setGradingAssignmentId] = useState(null);
     const [executingAssignmentId, setExecutingAssignmentId] = useState(null);
     const [confirmAction, setConfirmAction] = useState(null);
+    const [aiModalOpen, setAiModalOpen] = useState(false);
+    const [assessmentWizardOpen, setAssessmentWizardOpen] = useState(false);
+    const [assessmentWizardStep, setAssessmentWizardStep] = useState(0);
 
     const fetchDashboardData = async () => {
         setLoadingDashboard(true);
@@ -244,6 +281,114 @@ function AdminDashboard() {
         }
     };
 
+    const detectLanguageFromStarterCode = (starterCode) => {
+        const code = starterCode || "";
+
+        if (
+            code.includes("public class") ||
+            code.includes("public static void main") ||
+            code.includes("System.out")
+        ) {
+            return "JAVA";
+        }
+
+        if (
+            code.includes("console.log") ||
+            code.includes("function ") ||
+            code.includes("const ") ||
+            code.includes("let ")
+        ) {
+            return "JAVASCRIPT";
+        }
+
+        if (
+            code.includes("def ") ||
+            code.includes("print(") ||
+            code.includes("input(")
+        ) {
+            return "PYTHON";
+        }
+
+        return null;
+    };
+
+    const handleAiAssessmentGenerated = (draft) => {
+        const hasCodingFields =
+            Boolean(draft?.starterCode?.trim()) ||
+            Boolean(draft?.expectedOutput?.trim()) ||
+            Boolean(draft?.testCases?.length);
+
+        const nextType = hasCodingFields ? "CODING_CHALLENGE" : "QUIZ";
+        const detectedLanguage = detectLanguageFromStarterCode(draft?.starterCode);
+
+        const nextLanguage =
+            nextType === "CODING_CHALLENGE"
+                ? detectedLanguage ||
+                (assessmentForm.language === "TEXT" ? "JAVA" : assessmentForm.language)
+                : "TEXT";
+
+        const descriptionParts = [];
+
+        if (draft?.description?.trim()) {
+            descriptionParts.push(draft.description.trim());
+        }
+
+        if (draft?.rubric?.trim()) {
+            descriptionParts.push(`Rubric:\n${draft.rubric.trim()}`);
+        }
+
+        const aiTestCases = Array.isArray(draft?.testCases)
+            ? draft.testCases.map((testCase, index) => ({
+                name: testCase.name || `Test case ${index + 1}`,
+                input: testCase.input || "",
+                expectedOutput: testCase.expectedOutput || "",
+                hidden: Boolean(testCase.hidden),
+                points: Number(testCase.points || 0),
+            }))
+            : [];
+
+        const fallbackTestCases =
+            nextType === "CODING_CHALLENGE" && aiTestCases.length === 0
+                ? [
+                    {
+                        name: "Sample case",
+                        input: "",
+                        expectedOutput: draft?.expectedOutput || "",
+                        hidden: false,
+                        points: draft?.maxScore || 100,
+                    },
+                ]
+                : aiTestCases;
+
+        setAssessmentForm({
+            title: draft?.title || "",
+            description: descriptionParts.join("\n\n"),
+            type: nextType,
+            language: nextLanguage,
+            maxScore: draft?.maxScore || 100,
+            prompt: draft?.prompt || "",
+            starterCode:
+                nextType === "CODING_CHALLENGE"
+                    ? draft?.starterCode || getDefaultStarterCode(nextLanguage)
+                    : "",
+            expectedOutput:
+                nextType === "CODING_CHALLENGE"
+                    ? draft?.expectedOutput ||
+                    fallbackTestCases.find((testCase) => !testCase.hidden)
+                        ?.expectedOutput ||
+                    ""
+                    : "",
+            testCases: nextType === "CODING_CHALLENGE" ? fallbackTestCases : [],
+        });
+
+        setAssessmentSearch("");
+        setAssessmentTypeFilter("ALL");
+        setAssessmentLanguageFilter("ALL");
+
+        setAssessmentWizardStep(3);
+        setAssessmentWizardOpen(true);
+    };
+
     const handleCandidateChange = (event) => {
         setCandidateForm((current) => ({
             ...current,
@@ -260,15 +405,40 @@ function AdminDashboard() {
                 [name]: value,
             };
 
+            if (name === "maxScore") {
+                updated.maxScore = value;
+            }
+
             if (name === "type" && value === "QUIZ") {
                 updated.language = "TEXT";
                 updated.starterCode = "";
                 updated.expectedOutput = "";
+                updated.testCases = [];
             }
 
             if (name === "type" && value === "CODING_CHALLENGE") {
                 updated.language =
                     current.language === "TEXT" ? "JAVA" : current.language;
+
+                if (!current.starterCode) {
+                    updated.starterCode = getDefaultStarterCode(updated.language);
+                }
+
+                if (!current.expectedOutput) {
+                    updated.expectedOutput = "Hello SkillSync";
+                }
+
+                if (!current.testCases || current.testCases.length === 0) {
+                    updated.testCases = [
+                        {
+                            name: "Sample case",
+                            input: "",
+                            expectedOutput: updated.expectedOutput,
+                            hidden: false,
+                            points: Number(updated.maxScore || 100),
+                        },
+                    ];
+                }
             }
 
             if (name === "language") {
@@ -276,6 +446,58 @@ function AdminDashboard() {
             }
 
             return updated;
+        });
+    };
+
+    const handleAssessmentTestCaseChange = (index, field, value) => {
+        setAssessmentForm((current) => {
+            const testCases = [...(current.testCases || [])];
+
+            testCases[index] = {
+                ...testCases[index],
+                [field]: field === "hidden" ? Boolean(value) : value,
+            };
+
+            return {
+                ...current,
+                testCases,
+            };
+        });
+    };
+
+    const handleAddAssessmentTestCase = () => {
+        setAssessmentForm((current) => {
+            const currentTestCases = current.testCases || [];
+            const nextIndex = currentTestCases.length + 1;
+
+            return {
+                ...current,
+                testCases: [
+                    ...currentTestCases,
+                    createDefaultTestCase(nextIndex, 0),
+                ],
+            };
+        });
+    };
+
+    const handleRemoveAssessmentTestCase = (index) => {
+        setAssessmentForm((current) => {
+            const testCases = (current.testCases || []).filter(
+                (_, itemIndex) => itemIndex !== index
+            );
+
+            return {
+                ...current,
+                testCases:
+                    testCases.length > 0
+                        ? testCases
+                        : [
+                            createDefaultTestCase(
+                                1,
+                                Number(current.maxScore || 100)
+                            ),
+                        ],
+            };
         });
     };
 
@@ -326,32 +548,61 @@ function AdminDashboard() {
         event.preventDefault();
 
         if (creatingAssessment) {
-            return;
+            return false;
+        }
+
+        const payload = {
+            ...assessmentForm,
+            maxScore: Number(assessmentForm.maxScore),
+            testCases:
+                assessmentForm.type === "CODING_CHALLENGE"
+                    ? normalizeTestCasesForSubmit(assessmentForm.testCases)
+                    : [],
+        };
+
+        if (
+            payload.type === "CODING_CHALLENGE" &&
+            (!payload.testCases || payload.testCases.length === 0)
+        ) {
+            showWarning("Please add at least one test case with expected output.");
+            return false;
+        }
+
+        if (payload.type === "CODING_CHALLENGE") {
+            const totalPoints = payload.testCases.reduce(
+                (total, testCase) => total + Number(testCase.points || 0),
+                0
+            );
+
+            const hasVisibleCase = payload.testCases.some(
+                (testCase) => !testCase.hidden
+            );
+
+            if (!hasVisibleCase) {
+                showWarning("Please keep at least one visible sample test case.");
+                return false;
+            }
+
+            if (totalPoints !== payload.maxScore) {
+                showWarning("Test case points must add up to the max score.");
+                return false;
+            }
         }
 
         setCreatingAssessment(true);
 
         try {
-            await assessmentApi.createAssessment({
-                ...assessmentForm,
-                maxScore: Number(assessmentForm.maxScore),
-            });
+            await assessmentApi.createAssessment(payload);
 
-            setAssessmentForm({
-                title: "",
-                description: "",
-                type: "CODING_CHALLENGE",
-                language: "JAVA",
-                maxScore: 100,
-                prompt: "",
-                starterCode: getDefaultStarterCode("JAVA"),
-                expectedOutput: "Hello SkillSync",
-            });
+            setAssessmentForm(createInitialAssessmentForm());
 
             showSuccess("Assessment created successfully.");
             await fetchDashboardData();
+
+            return true;
         } catch (err) {
             showError(getApiErrorMessage(err, "Failed to create assessment"));
+            return false;
         } finally {
             setCreatingAssessment(false);
         }
@@ -510,13 +761,16 @@ function AdminDashboard() {
                     </p>
                 </div>
 
-                <button
-                    className="secondary-button"
-                    onClick={fetchDashboardData}
-                    disabled={loadingDashboard}
-                >
-                    {loadingDashboard ? "Refreshing..." : "Refresh"}
-                </button>
+                <div className="dashboard-header-actions">
+                    <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={fetchDashboardData}
+                        disabled={loadingDashboard}
+                    >
+                        {loadingDashboard ? "Refreshing..." : "Refresh"}
+                    </button>
+                </div>
             </div>
 
             {loadingDashboard && (
@@ -538,7 +792,15 @@ function AdminDashboard() {
                 <AssessmentCreateForm
                     assessmentForm={assessmentForm}
                     creatingAssessment={creatingAssessment}
+                    wizardOpen={assessmentWizardOpen}
+                    wizardStep={assessmentWizardStep}
+                    onWizardOpenChange={setAssessmentWizardOpen}
+                    onWizardStepChange={setAssessmentWizardStep}
+                    onGenerateWithAi={() => setAiModalOpen(true)}
                     onAssessmentChange={handleAssessmentChange}
+                    onAssessmentTestCaseChange={handleAssessmentTestCaseChange}
+                    onAddAssessmentTestCase={handleAddAssessmentTestCase}
+                    onRemoveAssessmentTestCase={handleRemoveAssessmentTestCase}
                     onCreateAssessment={handleCreateAssessment}
                 />
 
@@ -609,6 +871,12 @@ function AdminDashboard() {
                     />
                 )}
             </div>
+
+            <AiAssessmentGeneratorModal
+                isOpen={aiModalOpen}
+                onClose={() => setAiModalOpen(false)}
+                onGenerated={handleAiAssessmentGenerated}
+            />
 
             <ConfirmModal
                 open={Boolean(confirmAction)}
