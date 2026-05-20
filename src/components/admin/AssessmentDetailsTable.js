@@ -81,7 +81,7 @@ function AssessmentDetailsTable({
 
                             return (
                                 <tr key={assessment.id}>
-                                    <td>
+                                    <td data-label="Title">
                                         <div className="primary-cell">
                                             {assessment.title}
                                         </div>
@@ -96,15 +96,17 @@ function AssessmentDetailsTable({
                                         </div>
                                     </td>
 
-                                    <td>
+                                    <td data-label="Type">
                                         <StatusBadge value={assessment.type} />
                                     </td>
 
-                                    <td>{formatLanguage(assessment.language)}</td>
+                                    <td data-label="Language">
+                                        {formatLanguage(assessment.language)}
+                                    </td>
 
-                                    <td>{assessment.maxScore}</td>
+                                    <td data-label="Max Score">{assessment.maxScore}</td>
 
-                                    <td>
+                                    <td data-label="Test Cases">
                                         {assessment.type === "CODING_CHALLENGE" ? (
                                             <div>
                                                 <div className="primary-cell">
@@ -120,7 +122,7 @@ function AssessmentDetailsTable({
                                         )}
                                     </td>
 
-                                    <td className="muted-cell">
+                                    <td data-label="Description" className="muted-cell">
                                         {assessment.description || "No description"}
                                     </td>
                                 </tr>

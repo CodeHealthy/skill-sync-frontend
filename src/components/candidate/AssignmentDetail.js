@@ -294,7 +294,7 @@ function TestCaseResultCard({ result, index }) {
                     />
                     <DetailItem
                         label="Exit Code"
-                        value={result.exitCode ?? "—"}
+                        value={result.exitCode ?? "-"}
                     />
                     <DetailItem
                         label="Timed Out"

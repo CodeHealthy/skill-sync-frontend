@@ -51,12 +51,14 @@ function CandidateTable({
                     <tbody>
                         {candidates.map((candidate) => (
                             <tr key={candidate.id}>
-                                <td>{candidate.name}</td>
-                                <td>{candidate.email}</td>
-                                <td>
+                                <td data-label="Name">{candidate.name}</td>
+                                <td data-label="Email">{candidate.email}</td>
+                                <td data-label="Status">
                                     <StatusBadge value={candidate.status || "INVITED"} />
                                 </td>
-                                <td className="muted-cell">{candidate.id}</td>
+                                <td data-label="Candidate ID" className="muted-cell">
+                                    {candidate.id}
+                                </td>
                             </tr>
                         ))}
 

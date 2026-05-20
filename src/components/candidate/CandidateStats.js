@@ -1,11 +1,14 @@
-function EmptyTableRow({ colSpan, message }) {
+import MetricCard from "../common/MetricCard";
+
+function CandidateStats({ stats }) {
     return (
-        <tr>
-            <td colSpan={colSpan} className="empty-table-cell">
-                {message}
-            </td>
-        </tr>
+        <div className="summary-grid">
+            <MetricCard label="Total Assessments" value={stats.total} />
+            <MetricCard label="Pending" value={stats.pending} />
+            <MetricCard label="Submitted" value={stats.submitted} />
+            <MetricCard label="Graded" value={stats.graded} />
+        </div>
     );
 }
 
-export default EmptyTableRow;
+export default CandidateStats;

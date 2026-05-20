@@ -49,7 +49,9 @@ function AssignmentResultsTable({
 
                 <select
                     value={assignmentExecutionFilter}
-                    onChange={(event) => onAssignmentExecutionFilterChange(event.target.value)}
+                    onChange={(event) =>
+                        onAssignmentExecutionFilterChange(event.target.value)
+                    }
                 >
                     <option value="ALL">All execution statuses</option>
                     <option value="NOT_RUN">Not executed</option>
@@ -62,7 +64,9 @@ function AssignmentResultsTable({
 
                 <select
                     value={assignmentLanguageFilter}
-                    onChange={(event) => onAssignmentLanguageFilterChange(event.target.value)}
+                    onChange={(event) =>
+                        onAssignmentLanguageFilterChange(event.target.value)
+                    }
                 >
                     <option value="ALL">All languages</option>
                     <option value="JAVA">Java</option>
@@ -108,7 +112,7 @@ function AssignmentResultsTable({
 
                             return (
                                 <tr key={assignment.id}>
-                                    <td>
+                                    <td data-label="Candidate">
                                         <div className="primary-cell">
                                             {assignment.candidateName}
                                         </div>
@@ -117,7 +121,7 @@ function AssignmentResultsTable({
                                         </div>
                                     </td>
 
-                                    <td>
+                                    <td data-label="Assessment">
                                         <div className="primary-cell">
                                             {assignment.assessmentTitle}
                                         </div>
@@ -126,17 +130,21 @@ function AssignmentResultsTable({
                                         </div>
                                     </td>
 
-                                    <td>{formatLanguage(assignment.language)}</td>
+                                    <td data-label="Language">
+                                        {formatLanguage(assignment.language)}
+                                    </td>
 
-                                    <td>
+                                    <td data-label="Status">
                                         <StatusBadge value={assignment.status} />
                                     </td>
 
-                                    <td>
-                                        <StatusBadge value={assignment.executionStatus || "NOT_RUN"} />
+                                    <td data-label="Execution">
+                                        <StatusBadge
+                                            value={assignment.executionStatus || "NOT_RUN"}
+                                        />
                                     </td>
 
-                                    <td>
+                                    <td data-label="Tests">
                                         {assignment.assessmentType === "CODING_CHALLENGE" ? (
                                             <div>
                                                 <div className="primary-cell">
@@ -144,7 +152,7 @@ function AssignmentResultsTable({
                                                         ? `${passedTests}/${testCaseResults.length}`
                                                         : totalTests > 0
                                                             ? `${totalTests} configured`
-                                                            : "—"}
+                                                            : "-"}
                                                 </div>
                                                 <div className="muted-cell">
                                                     {testCaseResults.length > 0
@@ -159,16 +167,18 @@ function AssignmentResultsTable({
                                         )}
                                     </td>
 
-                                    <td>
+                                    <td data-label="Score">
                                         {assignment.score !== null &&
                                             assignment.score !== undefined
                                             ? `${assignment.score}/${assignment.maxScore || 100}`
-                                            : "—"}
+                                            : "-"}
                                     </td>
 
-                                    <td>{formatDate(assignment.submittedAt)}</td>
+                                    <td data-label="Submitted">
+                                        {formatDate(assignment.submittedAt)}
+                                    </td>
 
-                                    <td>
+                                    <td data-label="Actions">
                                         <div className="table-actions">
                                             {assignment.status === "SUBMITTED" &&
                                                 assignment.assessmentType === "CODING_CHALLENGE" && (

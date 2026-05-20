@@ -119,8 +119,9 @@ function AssessmentCreateForm({
                                 className="icon-button"
                                 onClick={closeWizard}
                                 disabled={creatingAssessment}
+                                aria-label="Close assessment builder"
                             >
-                                ×
+                                x
                             </button>
                         </div>
 
@@ -533,7 +534,7 @@ function ReviewItem({ label, value }) {
     return (
         <div className="review-item">
             <span>{label}</span>
-            <strong>{value || "—"}</strong>
+            <strong>{value || "-"}</strong>
         </div>
     );
 }

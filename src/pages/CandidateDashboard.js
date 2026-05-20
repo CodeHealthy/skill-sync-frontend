@@ -1,25 +1,35 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { assessmentApi } from "../api/assessmentApi";
-import CandidateStats from "../components/candidate/CandidateStats";
-import CandidateFilters from "../components/candidate/CandidateFilters";
-import AssignmentList from "../components/candidate/AssignmentList";
-import AssignmentDetail from "../components/candidate/AssignmentDetail";
+import DashboardLayout from "../components/layout/DashboardLayout";
+import CandidateOverviewPanel from "../components/candidate/CandidateOverviewPanel";
+import MyAssignmentsPanel from "../components/candidate/MyAssignmentsPanel";
+import CandidateResultsPanel from "../components/candidate/CandidateResultsPanel";
+import CandidateProfilePanel from "../components/candidate/CandidateProfilePanel";
 import { CANDIDATE_PAGE_SIZE } from "../constants/pagination";
 import { getApiErrorMessage } from "../utils/errorUtils";
 import { paginate } from "../utils/paginationUtils";
 import { showError, showSuccess, showWarning } from "../utils/toastUtils";
 
+// ====================================================
+// CANDIDATE DASHBOARD COMPONENT
+// ====================================================
+
 function CandidateDashboard() {
     const { user } = useAuth();
+    const [activeTab, setActiveTab] = useState("overview");
 
+    // ---- Data ----
     const [assignments, setAssignments] = useState([]);
     const [answers, setAnswers] = useState({});
     const [codes, setCodes] = useState({});
 
+    // ---- Loading States ----
     const [loadingAssignments, setLoadingAssignments] = useState(false);
     const [submittingAssignmentId, setSubmittingAssignmentId] = useState(null);
+    const [runningAssignmentId, setRunningAssignmentId] = useState(null);
 
+    // ---- Assignments Tab State ----
     const [searchTerm, setSearchTerm] = useState("");
     const [organizationFilter, setOrganizationFilter] = useState("ALL");
     const [statusFilter, setStatusFilter] = useState("ALL");
@@ -28,8 +38,10 @@ function CandidateDashboard() {
     const [page, setPage] = useState(1);
     const [selectedAssignmentId, setSelectedAssignmentId] = useState(null);
 
-    const [runningAssignmentId, setRunningAssignmentId] = useState(null);
+    // ---- Run Results ----
     const [runResults, setRunResults] = useState({});
+
+    // ---- Fetch Assignments ----
 
     const fetchAssignments = async () => {
         setLoadingAssignments(true);
@@ -66,6 +78,8 @@ function CandidateDashboard() {
     useEffect(() => {
         setPage(1);
     }, [searchTerm, organizationFilter, statusFilter, executionFilter, languageFilter]);
+
+    // ---- Computed Data ----
 
     const organizations = useMemo(() => {
         const names = assignments
@@ -139,6 +153,8 @@ function CandidateDashboard() {
         page,
         CANDIDATE_PAGE_SIZE
     );
+
+    // ---- Event Handlers ----
 
     const handleAnswerChange = (assignmentId, value) => {
         setAnswers((current) => ({
@@ -254,96 +270,90 @@ function CandidateDashboard() {
         }
     };
 
+    // ---- Dashboard Tabs ----
+
+    const dashboardTabs = [
+        {
+            id: "overview",
+            label: "Overview",
+            icon: "overview",
+            content: (
+                <CandidateOverviewPanel
+                    stats={stats}
+                    assignments={assignments}
+                    loadingAssignments={loadingAssignments}
+                    onRefresh={fetchAssignments}
+                />
+            ),
+        },
+        {
+            id: "assignments",
+            label: "My Assessments",
+            icon: "assignments",
+            content: (
+                <MyAssignmentsPanel
+                    assignments={assignments}
+                    paginatedAssignments={paginatedAssignments}
+                    filteredCount={filteredAssignments.length}
+                    loadingAssignments={loadingAssignments}
+                    selectedAssignment={selectedAssignment}
+                    page={page}
+                    pageSize={CANDIDATE_PAGE_SIZE}
+                    searchTerm={searchTerm}
+                    organizationFilter={organizationFilter}
+                    statusFilter={statusFilter}
+                    executionFilter={executionFilter}
+                    languageFilter={languageFilter}
+                    organizations={organizations}
+                    code={codes[selectedAssignment?.id] || ""}
+                    answer={answers[selectedAssignment?.id] || ""}
+                    submittingAssignmentId={submittingAssignmentId}
+                    runningAssignmentId={runningAssignmentId}
+                    runResult={runResults[selectedAssignment?.id]}
+                    onPageChange={setPage}
+                    onSelectAssignment={setSelectedAssignmentId}
+                    onSearchTermChange={setSearchTerm}
+                    onOrganizationFilterChange={setOrganizationFilter}
+                    onStatusFilterChange={setStatusFilter}
+                    onExecutionFilterChange={setExecutionFilter}
+                    onLanguageFilterChange={setLanguageFilter}
+                    onRefresh={fetchAssignments}
+                    onCodeChange={handleCodeChange}
+                    onAnswerChange={handleAnswerChange}
+                    onRunCode={handleRunCode}
+                    onSubmit={handleSubmit}
+                />
+            ),
+        },
+        {
+            id: "results",
+            label: "View Results",
+            icon: "results",
+            content: (
+                <CandidateResultsPanel
+                    assignments={assignments}
+                />
+            ),
+        },
+        {
+            id: "profile",
+            label: "Profile",
+            icon: "profile",
+            content: (
+                <CandidateProfilePanel user={user} />
+            ),
+        },
+    ];
+
     return (
-        <div className="page-container candidate-page">
-            <div className="dashboard-header">
-                <div>
-                    <p className="eyebrow">Candidate Workspace</p>
-                    <h1>Candidate Portal</h1>
-                    <p>
-                        Welcome, {user?.fullName}. Review assessments from organizations
-                        that invited you.
-                    </p>
-                </div>
-
-                <button
-                    className="secondary-button"
-                    onClick={fetchAssignments}
-                    disabled={loadingAssignments}
-                >
-                    {loadingAssignments ? "Refreshing..." : "Refresh"}
-                </button>
-            </div>
-
-            {loadingAssignments && (
-                <div className="info-box">
-                    Loading latest assignments...
-                </div>
-            )}
-
-            <CandidateStats stats={stats} />
-
-            <div className="candidate-workspace-grid">
-                <section className="list-card">
-                    <div className="section-header">
-                        <div>
-                            <h2>My Assessments</h2>
-                            <p>Filter, review, and open assigned assessments.</p>
-                        </div>
-                    </div>
-
-                    <CandidateFilters
-                        searchTerm={searchTerm}
-                        organizationFilter={organizationFilter}
-                        statusFilter={statusFilter}
-                        executionFilter={executionFilter}
-                        languageFilter={languageFilter}
-                        organizations={organizations}
-                        onSearchTermChange={setSearchTerm}
-                        onOrganizationFilterChange={setOrganizationFilter}
-                        onStatusFilterChange={setStatusFilter}
-                        onExecutionFilterChange={setExecutionFilter}
-                        onLanguageFilterChange={setLanguageFilter}
-                    />
-
-                    <AssignmentList
-                        assignments={assignments}
-                        paginatedAssignments={paginatedAssignments}
-                        filteredCount={filteredAssignments.length}
-                        loadingAssignments={loadingAssignments}
-                        selectedAssignment={selectedAssignment}
-                        page={page}
-                        pageSize={CANDIDATE_PAGE_SIZE}
-                        onPageChange={setPage}
-                        onSelectAssignment={setSelectedAssignmentId}
-                    />
-                </section>
-
-                <section className="list-card assessment-detail-card">
-                    {!selectedAssignment && (
-                        <div className="empty-state">
-                            <h3>Select an assessment</h3>
-                            <p>Choose an assessment from the list to view details.</p>
-                        </div>
-                    )}
-
-                    {selectedAssignment && (
-                        <AssignmentDetail
-                            assignment={selectedAssignment}
-                            code={codes[selectedAssignment.id] || ""}
-                            answer={answers[selectedAssignment.id] || ""}
-                            submittingAssignmentId={submittingAssignmentId}
-                            runningAssignmentId={runningAssignmentId}
-                            runResult={runResults[selectedAssignment.id]}
-                            onCodeChange={handleCodeChange}
-                            onAnswerChange={handleAnswerChange}
-                            onRunCode={handleRunCode}
-                            onSubmit={handleSubmit}
-                        />
-                    )}
-                </section>
-            </div>
-        </div>
+        <DashboardLayout
+            tabs={dashboardTabs}
+            activeTabId={activeTab}
+            onTabChange={setActiveTab}
+            userRole="candidate"
+            userName={user?.fullName}
+            userTitle="Candidate"
+        />
     );
 }
 

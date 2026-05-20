@@ -205,7 +205,7 @@ function ProfilePage() {
                                             : "password-check"
                                     }
                                 >
-                                    <span>{check.passed ? "✓" : "•"}</span>
+                                    <span>{check.passed ? "OK" : "-"}</span>
                                     {check.label}
                                 </div>
                             ))}

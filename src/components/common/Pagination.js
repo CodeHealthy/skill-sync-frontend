@@ -4,7 +4,7 @@ function Pagination({ page, totalItems, pageSize, onPageChange }) {
     return (
         <div className="pagination-row">
             <span>
-                Page {page} of {totalPages} · {totalItems} result
+                Page {page} of {totalPages} - {totalItems} result
                 {totalItems === 1 ? "" : "s"}
             </span>
 

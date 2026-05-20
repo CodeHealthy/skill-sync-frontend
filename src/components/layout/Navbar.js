@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 
@@ -6,6 +6,8 @@ function Navbar() {
     const { user, isAuthenticated, logout } = useAuth();
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
+    const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const userMenuRef = useRef(null);
 
     const dashboardPath = user?.role === "ADMIN" ? "/admin" : "/candidate";
     const dashboardLabel =
@@ -13,6 +15,7 @@ function Navbar() {
 
     const closeMenu = () => {
         setMenuOpen(false);
+        setUserMenuOpen(false);
     };
 
     const handleLogout = () => {
@@ -20,6 +23,20 @@ function Navbar() {
         closeMenu();
         navigate("/login");
     };
+
+    useEffect(() => {
+        const handleDocumentClick = (event) => {
+            if (
+                userMenuRef.current &&
+                !userMenuRef.current.contains(event.target)
+            ) {
+                setUserMenuOpen(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleDocumentClick);
+        return () => document.removeEventListener("mousedown", handleDocumentClick);
+    }, []);
 
     return (
         <nav className="navbar">
@@ -70,9 +87,6 @@ function Navbar() {
                             >
                                 {dashboardLabel}
                             </NavLink>
-                            <NavLink to="/profile" className="navbar-link" onClick={closeMenu}>
-                                Profile
-                            </NavLink>
                         </>
                     )}
                 </div>
@@ -98,25 +112,47 @@ function Navbar() {
                     )}
 
                     {isAuthenticated && (
-                        <>
-                            <div className="navbar-user-pill">
+                        <div className="navbar-user-menu" ref={userMenuRef}>
+                            <button
+                                type="button"
+                                className="navbar-user-pill"
+                                onClick={() => setUserMenuOpen((current) => !current)}
+                                aria-haspopup="menu"
+                                aria-expanded={userMenuOpen}
+                            >
                                 <span className="navbar-avatar">
                                     {user?.fullName?.charAt(0)?.toUpperCase() || "U"}
                                 </span>
-                                <span>
+                                <span className="navbar-user-text">
                                     {user?.fullName}
                                     <small>{user?.role}</small>
                                 </span>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={handleLogout}
-                                className="navbar-logout-button"
-                            >
-                                Logout
+                                <span className="navbar-user-caret" aria-hidden="true">
+                                    v
+                                </span>
                             </button>
-                        </>
+
+                            {userMenuOpen && (
+                                <div className="navbar-user-dropdown" role="menu">
+                                    <Link
+                                        to="/profile"
+                                        className="navbar-user-dropdown-item"
+                                        onClick={closeMenu}
+                                        role="menuitem"
+                                    >
+                                        Settings
+                                    </Link>
+                                    <button
+                                        type="button"
+                                        className="navbar-user-dropdown-item danger"
+                                        onClick={handleLogout}
+                                        role="menuitem"
+                                    >
+                                        Logout
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     )}
                 </div>
             </div>

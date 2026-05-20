@@ -64,8 +64,13 @@ function AiAssessmentGeneratorModal({ isOpen, onClose, onGenerated }) {
             <p>Create a draft, then review and edit before saving.</p>
           </div>
 
-          <button type="button" className="icon-button" onClick={onClose}>
-            ×
+          <button
+            type="button"
+            className="icon-button"
+            onClick={onClose}
+            aria-label="Close AI assessment generator"
+          >
+            x
           </button>
         </div>
 

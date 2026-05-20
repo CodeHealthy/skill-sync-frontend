@@ -2,21 +2,23 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { assessmentApi } from "../api/assessmentApi";
 import { candidateApi } from "../api/candidateApi";
-import AdminStats from "../components/admin/AdminStats";
-import AssessmentAssignForm from "../components/admin/AssessmentAssignForm";
-import AssessmentCreateForm from "../components/admin/AssessmentCreateForm";
-import AssessmentDetailsTable from "../components/admin/AssessmentDetailsTable";
-import AssignmentDetailsPanel from "../components/admin/AssignmentDetailsPanel";
-import AssignmentResultsTable from "../components/admin/AssignmentResultsTable";
-import CandidateInviteForm from "../components/admin/CandidateInviteForm";
-import CandidateTable from "../components/admin/CandidateTable";
+import DashboardLayout from "../components/layout/DashboardLayout";
+import AdminOverviewPanel from "../components/admin/AdminOverviewPanel";
+import ManageCandidatesPanel from "../components/admin/ManageCandidatesPanel";
+import CreateAssessmentPanel from "../components/admin/CreateAssessmentPanel";
+import ViewResultsPanel from "../components/admin/ViewResultsPanel";
+import AdminProfilePanel from "../components/admin/AdminProfilePanel";
 import AiAssessmentGeneratorModal from "../components/admin/AiAssessmentGeneratorModal";
 import ConfirmModal from "../components/common/ConfirmModal";
 import { ADMIN_PAGE_SIZE } from "../constants/pagination";
 import { getDefaultStarterCode } from "../constants/starterCode";
 import { getApiErrorMessage } from "../utils/errorUtils";
 import { paginate } from "../utils/paginationUtils";
-import { showError, showSuccess, showWarning } from "../utils/toastUtils";
+import { showError, showSuccess } from "../utils/toastUtils";
+
+// ====================================================
+// HELPER FUNCTIONS
+// ====================================================
 
 const createDefaultTestCase = (index = 1, maxScore = 100) => ({
     name: index === 1 ? "Sample case" : `Test case ${index}`,
@@ -58,9 +60,15 @@ const normalizeTestCasesForSubmit = (testCases) => {
         }));
 };
 
+// ====================================================
+// ADMIN DASHBOARD COMPONENT
+// ====================================================
+
 function AdminDashboard() {
     const { user } = useAuth();
+    const [activeTab, setActiveTab] = useState("overview");
 
+    // ---- Forms ----
     const [candidateForm, setCandidateForm] = useState({
         name: "",
         email: "",
@@ -77,19 +85,23 @@ function AdminDashboard() {
 
     const [gradeForms, setGradeForms] = useState({});
 
+    // ---- Data ----
     const [candidates, setCandidates] = useState([]);
     const [assessments, setAssessments] = useState([]);
     const [assignments, setAssignments] = useState([]);
 
+    // ---- Candidates Tab State ----
     const [candidateSearch, setCandidateSearch] = useState("");
     const [candidateStatusFilter, setCandidateStatusFilter] = useState("ALL");
     const [candidatePage, setCandidatePage] = useState(1);
 
+    // ---- Assessments Tab State ----
     const [assessmentSearch, setAssessmentSearch] = useState("");
     const [assessmentTypeFilter, setAssessmentTypeFilter] = useState("ALL");
     const [assessmentLanguageFilter, setAssessmentLanguageFilter] = useState("ALL");
     const [assessmentPage, setAssessmentPage] = useState(1);
 
+    // ---- Results Tab State ----
     const [assignmentSearch, setAssignmentSearch] = useState("");
     const [assignmentStatusFilter, setAssignmentStatusFilter] = useState("ALL");
     const [assignmentExecutionFilter, setAssignmentExecutionFilter] = useState("ALL");
@@ -97,6 +109,7 @@ function AdminDashboard() {
     const [assignmentPage, setAssignmentPage] = useState(1);
     const [expandedAssignmentId, setExpandedAssignmentId] = useState(null);
 
+    // ---- Loading & Modal States ----
     const [loadingDashboard, setLoadingDashboard] = useState(false);
     const [creatingCandidate, setCreatingCandidate] = useState(false);
     const [creatingAssessment, setCreatingAssessment] = useState(false);
@@ -107,6 +120,8 @@ function AdminDashboard() {
     const [aiModalOpen, setAiModalOpen] = useState(false);
     const [assessmentWizardOpen, setAssessmentWizardOpen] = useState(false);
     const [assessmentWizardStep, setAssessmentWizardStep] = useState(0);
+
+    // ---- Fetch Data ----
 
     const fetchDashboardData = async () => {
         setLoadingDashboard(true);
@@ -150,6 +165,8 @@ function AdminDashboard() {
         assignmentLanguageFilter,
     ]);
 
+    // ---- Computed Stats ----
+
     const dashboardStats = useMemo(() => {
         return {
             totalCandidates: candidates.length,
@@ -162,6 +179,8 @@ function AdminDashboard() {
             ).length,
         };
     }, [candidates, assessments, assignments]);
+
+    // ---- Filter & Paginate ----
 
     const filteredCandidates = useMemo(() => {
         const search = candidateSearch.trim().toLowerCase();
@@ -202,19 +221,12 @@ function AdminDashboard() {
 
             return matchesSearch && matchesType && matchesLanguage;
         });
-    }, [
-        assessments,
-        assessmentSearch,
-        assessmentTypeFilter,
-        assessmentLanguageFilter,
-    ]);
+    }, [assessments, assessmentSearch, assessmentTypeFilter, assessmentLanguageFilter]);
 
     const filteredAssignments = useMemo(() => {
         const search = assignmentSearch.trim().toLowerCase();
 
         return assignments.filter((assignment) => {
-            const executionStatus = assignment.executionStatus || "NOT_RUN";
-
             const matchesSearch =
                 !search ||
                 assignment.candidateName?.toLowerCase().includes(search) ||
@@ -227,18 +239,13 @@ function AdminDashboard() {
 
             const matchesExecution =
                 assignmentExecutionFilter === "ALL" ||
-                executionStatus === assignmentExecutionFilter;
+                assignment.executionStatus === assignmentExecutionFilter;
 
             const matchesLanguage =
                 assignmentLanguageFilter === "ALL" ||
                 assignment.language === assignmentLanguageFilter;
 
-            return (
-                matchesSearch &&
-                matchesStatus &&
-                matchesExecution &&
-                matchesLanguage
-            );
+            return matchesSearch && matchesStatus && matchesExecution && matchesLanguage;
         });
     }, [
         assignments,
@@ -248,264 +255,190 @@ function AdminDashboard() {
         assignmentLanguageFilter,
     ]);
 
-    const paginatedCandidates = paginate(
-        filteredCandidates,
-        candidatePage,
-        ADMIN_PAGE_SIZE
-    );
+    const paginatedCandidates = paginate(filteredCandidates, candidatePage, ADMIN_PAGE_SIZE);
+    const paginatedAssessments = paginate(filteredAssessments, assessmentPage, ADMIN_PAGE_SIZE);
+    const paginatedAssignments = paginate(filteredAssignments, assignmentPage, ADMIN_PAGE_SIZE);
 
-    const paginatedAssessments = paginate(
-        filteredAssessments,
-        assessmentPage,
-        ADMIN_PAGE_SIZE
-    );
+    const expandedAssignment = assignments.find((item) => item.id === expandedAssignmentId);
 
-    const paginatedAssignments = paginate(
-        filteredAssignments,
-        assignmentPage,
-        ADMIN_PAGE_SIZE
-    );
-
-    const expandedAssignment = assignments.find(
-        (assignment) => assignment.id === expandedAssignmentId
-    );
-
-    const confirmLoading =
-        assigningAssessment ||
-        Boolean(gradingAssignmentId) ||
-        Boolean(executingAssignmentId);
-
-    const closeConfirmModal = () => {
-        if (!confirmLoading) {
-            setConfirmAction(null);
-        }
-    };
-
-    const detectLanguageFromStarterCode = (starterCode) => {
-        const code = starterCode || "";
-
-        if (
-            code.includes("public class") ||
-            code.includes("public static void main") ||
-            code.includes("System.out")
-        ) {
-            return "JAVA";
-        }
-
-        if (
-            code.includes("console.log") ||
-            code.includes("function ") ||
-            code.includes("const ") ||
-            code.includes("let ")
-        ) {
-            return "JAVASCRIPT";
-        }
-
-        if (
-            code.includes("def ") ||
-            code.includes("print(") ||
-            code.includes("input(")
-        ) {
-            return "PYTHON";
-        }
-
-        return null;
-    };
-
-    const handleAiAssessmentGenerated = (draft) => {
-        const hasCodingFields =
-            Boolean(draft?.starterCode?.trim()) ||
-            Boolean(draft?.expectedOutput?.trim()) ||
-            Boolean(draft?.testCases?.length);
-
-        const nextType = hasCodingFields ? "CODING_CHALLENGE" : "QUIZ";
-        const detectedLanguage = detectLanguageFromStarterCode(draft?.starterCode);
-
-        const nextLanguage =
-            nextType === "CODING_CHALLENGE"
-                ? detectedLanguage ||
-                (assessmentForm.language === "TEXT" ? "JAVA" : assessmentForm.language)
-                : "TEXT";
-
-        const descriptionParts = [];
-
-        if (draft?.description?.trim()) {
-            descriptionParts.push(draft.description.trim());
-        }
-
-        if (draft?.rubric?.trim()) {
-            descriptionParts.push(`Rubric:\n${draft.rubric.trim()}`);
-        }
-
-        const aiTestCases = Array.isArray(draft?.testCases)
-            ? draft.testCases.map((testCase, index) => ({
-                name: testCase.name || `Test case ${index + 1}`,
-                input: testCase.input || "",
-                expectedOutput: testCase.expectedOutput || "",
-                hidden: Boolean(testCase.hidden),
-                points: Number(testCase.points || 0),
-            }))
-            : [];
-
-        const fallbackTestCases =
-            nextType === "CODING_CHALLENGE" && aiTestCases.length === 0
-                ? [
-                    {
-                        name: "Sample case",
-                        input: "",
-                        expectedOutput: draft?.expectedOutput || "",
-                        hidden: false,
-                        points: draft?.maxScore || 100,
-                    },
-                ]
-                : aiTestCases;
-
-        setAssessmentForm({
-            title: draft?.title || "",
-            description: descriptionParts.join("\n\n"),
-            type: nextType,
-            language: nextLanguage,
-            maxScore: draft?.maxScore || 100,
-            prompt: draft?.prompt || "",
-            starterCode:
-                nextType === "CODING_CHALLENGE"
-                    ? draft?.starterCode || getDefaultStarterCode(nextLanguage)
-                    : "",
-            expectedOutput:
-                nextType === "CODING_CHALLENGE"
-                    ? draft?.expectedOutput ||
-                    fallbackTestCases.find((testCase) => !testCase.hidden)
-                        ?.expectedOutput ||
-                    ""
-                    : "",
-            testCases: nextType === "CODING_CHALLENGE" ? fallbackTestCases : [],
-        });
-
-        setAssessmentSearch("");
-        setAssessmentTypeFilter("ALL");
-        setAssessmentLanguageFilter("ALL");
-
-        setAssessmentWizardStep(3);
-        setAssessmentWizardOpen(true);
-    };
+    // ---- Event Handlers (same as before) ----
 
     const handleCandidateChange = (event) => {
+        const { name, value } = event.target;
         setCandidateForm((current) => ({
             ...current,
-            [event.target.name]: event.target.value,
+            [name]: value,
         }));
+    };
+
+    const handleCreateCandidate = async (event) => {
+        event.preventDefault();
+
+        if (!candidateForm.name.trim() || !candidateForm.email.trim()) {
+            showError("Please provide both name and email.");
+            return;
+        }
+
+        setCreatingCandidate(true);
+
+        try {
+            await candidateApi.inviteCandidate({
+                name: candidateForm.name,
+                email: candidateForm.email,
+            });
+
+            showSuccess("Candidate invited successfully.");
+            setCandidateForm({ name: "", email: "" });
+            await fetchDashboardData();
+        } catch (err) {
+            showError(getApiErrorMessage(err, "Failed to invite candidate"));
+        } finally {
+            setCreatingCandidate(false);
+        }
     };
 
     const handleAssessmentChange = (event) => {
         const { name, value } = event.target;
-
-        setAssessmentForm((current) => {
-            const updated = {
-                ...current,
-                [name]: value,
-            };
-
-            if (name === "maxScore") {
-                updated.maxScore = value;
-            }
-
-            if (name === "type" && value === "QUIZ") {
-                updated.language = "TEXT";
-                updated.starterCode = "";
-                updated.expectedOutput = "";
-                updated.testCases = [];
-            }
-
-            if (name === "type" && value === "CODING_CHALLENGE") {
-                updated.language =
-                    current.language === "TEXT" ? "JAVA" : current.language;
-
-                if (!current.starterCode) {
-                    updated.starterCode = getDefaultStarterCode(updated.language);
-                }
-
-                if (!current.expectedOutput) {
-                    updated.expectedOutput = "Hello SkillSync";
-                }
-
-                if (!current.testCases || current.testCases.length === 0) {
-                    updated.testCases = [
-                        {
-                            name: "Sample case",
-                            input: "",
-                            expectedOutput: updated.expectedOutput,
-                            hidden: false,
-                            points: Number(updated.maxScore || 100),
-                        },
-                    ];
-                }
-            }
-
-            if (name === "language") {
-                updated.starterCode = getDefaultStarterCode(value);
-            }
-
-            return updated;
-        });
+        setAssessmentForm((current) => ({
+            ...current,
+            [name]: value,
+        }));
     };
 
     const handleAssessmentTestCaseChange = (index, field, value) => {
         setAssessmentForm((current) => {
-            const testCases = [...(current.testCases || [])];
-
-            testCases[index] = {
-                ...testCases[index],
-                [field]: field === "hidden" ? Boolean(value) : value,
+            const updatedTestCases = [...current.testCases];
+            updatedTestCases[index] = {
+                ...updatedTestCases[index],
+                [field]: value,
             };
-
             return {
                 ...current,
-                testCases,
+                testCases: updatedTestCases,
             };
         });
     };
 
     const handleAddAssessmentTestCase = () => {
-        setAssessmentForm((current) => {
-            const currentTestCases = current.testCases || [];
-            const nextIndex = currentTestCases.length + 1;
-
-            return {
-                ...current,
-                testCases: [
-                    ...currentTestCases,
-                    createDefaultTestCase(nextIndex, 0),
-                ],
-            };
-        });
+        setAssessmentForm((current) => ({
+            ...current,
+            testCases: [
+                ...current.testCases,
+                createDefaultTestCase(current.testCases.length + 1, current.maxScore),
+            ],
+        }));
     };
 
     const handleRemoveAssessmentTestCase = (index) => {
-        setAssessmentForm((current) => {
-            const testCases = (current.testCases || []).filter(
-                (_, itemIndex) => itemIndex !== index
-            );
+        setAssessmentForm((current) => ({
+            ...current,
+            testCases: current.testCases.filter((_, i) => i !== index),
+        }));
+    };
 
-            return {
-                ...current,
-                testCases:
-                    testCases.length > 0
-                        ? testCases
-                        : [
-                            createDefaultTestCase(
-                                1,
-                                Number(current.maxScore || 100)
-                            ),
-                        ],
-            };
-        });
+    const handleCreateAssessment = async (event) => {
+        event.preventDefault();
+
+        if (!assessmentForm.title.trim()) {
+            showError("Please provide an assessment title.");
+            return;
+        }
+
+        if (!assessmentForm.prompt.trim()) {
+            showError("Please provide an assessment prompt.");
+            return;
+        }
+
+        if (assessmentForm.type === "CODING_CHALLENGE" && assessmentForm.testCases.length === 0) {
+            showError("Please add at least one test case for coding challenges.");
+            return;
+        }
+
+        setCreatingAssessment(true);
+
+        try {
+            const normalizedTestCases = normalizeTestCasesForSubmit(assessmentForm.testCases);
+
+            await assessmentApi.createAssessment({
+                title: assessmentForm.title,
+                description: assessmentForm.description,
+                type: assessmentForm.type,
+                language: assessmentForm.language,
+                maxScore: Number(assessmentForm.maxScore),
+                prompt: assessmentForm.prompt,
+                starterCode: assessmentForm.starterCode,
+                testCases: normalizedTestCases,
+            });
+
+            showSuccess("Assessment created successfully.");
+            setAssessmentForm(createInitialAssessmentForm());
+            setAssessmentWizardOpen(false);
+            setAssessmentWizardStep(0);
+            await fetchDashboardData();
+        } catch (err) {
+            showError(getApiErrorMessage(err, "Failed to create assessment"));
+        } finally {
+            setCreatingAssessment(false);
+        }
+    };
+
+    const handleAiAssessmentGenerated = (draft) => {
+        setAssessmentForm(draft);
+        setAssessmentWizardOpen(true);
+        setAssessmentWizardStep(0);
     };
 
     const handleAssignChange = (event) => {
+        const { name, value } = event.target;
         setAssignForm((current) => ({
             ...current,
-            [event.target.name]: event.target.value,
+            [name]: value,
         }));
+    };
+
+    const handleAssignAssessment = async (event) => {
+        event.preventDefault();
+
+        if (!assignForm.candidateId || !assignForm.assessmentId) {
+            showError("Please select both candidate and assessment.");
+            return;
+        }
+
+        setAssigningAssessment(true);
+
+        try {
+            await assessmentApi.assignAssessment(
+                assignForm.candidateId,
+                assignForm.assessmentId
+            );
+
+            showSuccess("Assessment assigned successfully.");
+            setAssignForm({ candidateId: "", assessmentId: "" });
+            await fetchDashboardData();
+        } catch (err) {
+            showError(getApiErrorMessage(err, "Failed to assign assessment"));
+        } finally {
+            setAssigningAssessment(false);
+        }
+    };
+
+    const requestAssignAssessment = (event) => {
+        event.preventDefault();
+
+        if (!assignForm.candidateId || !assignForm.assessmentId) {
+            showError("Please select both candidate and assessment.");
+            return;
+        }
+
+        const candidate = candidates.find((c) => c.id === assignForm.candidateId);
+        const assessment = assessments.find((a) => a.id === assignForm.assessmentId);
+
+        setConfirmAction({
+            title: "Assign assessment?",
+            message: `Assign "${assessment?.title}" to ${candidate?.name}?`,
+            confirmText: "Assign",
+            onConfirm: handleAssignAssessment,
+        });
     };
 
     const handleGradeChange = (assignmentId, field, value) => {
@@ -518,150 +451,11 @@ function AdminDashboard() {
         }));
     };
 
-    const handleCreateCandidate = async (event) => {
-        event.preventDefault();
-
-        if (creatingCandidate) {
-            return;
-        }
-
-        setCreatingCandidate(true);
-
-        try {
-            await candidateApi.createCandidate(candidateForm);
-
-            setCandidateForm({
-                name: "",
-                email: "",
-            });
-
-            showSuccess("Candidate invited successfully.");
-            await fetchDashboardData();
-        } catch (err) {
-            showError(getApiErrorMessage(err, "Failed to create candidate"));
-        } finally {
-            setCreatingCandidate(false);
-        }
-    };
-
-    const handleCreateAssessment = async (event) => {
-        event.preventDefault();
-
-        if (creatingAssessment) {
-            return false;
-        }
-
-        const payload = {
-            ...assessmentForm,
-            maxScore: Number(assessmentForm.maxScore),
-            testCases:
-                assessmentForm.type === "CODING_CHALLENGE"
-                    ? normalizeTestCasesForSubmit(assessmentForm.testCases)
-                    : [],
-        };
-
-        if (
-            payload.type === "CODING_CHALLENGE" &&
-            (!payload.testCases || payload.testCases.length === 0)
-        ) {
-            showWarning("Please add at least one test case with expected output.");
-            return false;
-        }
-
-        if (payload.type === "CODING_CHALLENGE") {
-            const totalPoints = payload.testCases.reduce(
-                (total, testCase) => total + Number(testCase.points || 0),
-                0
-            );
-
-            const hasVisibleCase = payload.testCases.some(
-                (testCase) => !testCase.hidden
-            );
-
-            if (!hasVisibleCase) {
-                showWarning("Please keep at least one visible sample test case.");
-                return false;
-            }
-
-            if (totalPoints !== payload.maxScore) {
-                showWarning("Test case points must add up to the max score.");
-                return false;
-            }
-        }
-
-        setCreatingAssessment(true);
-
-        try {
-            await assessmentApi.createAssessment(payload);
-
-            setAssessmentForm(createInitialAssessmentForm());
-
-            showSuccess("Assessment created successfully.");
-            await fetchDashboardData();
-
-            return true;
-        } catch (err) {
-            showError(getApiErrorMessage(err, "Failed to create assessment"));
-            return false;
-        } finally {
-            setCreatingAssessment(false);
-        }
-    };
-
-    const handleAssignAssessment = async () => {
-        if (assigningAssessment) {
-            return;
-        }
-
-        setAssigningAssessment(true);
-
-        try {
-            await assessmentApi.assignAssessment(assignForm);
-
-            setAssignForm({
-                candidateId: "",
-                assessmentId: "",
-            });
-
-            setConfirmAction(null);
-            showSuccess("Assessment assigned successfully.");
-            await fetchDashboardData();
-        } catch (err) {
-            showError(getApiErrorMessage(err, "Failed to assign assessment"));
-        } finally {
-            setAssigningAssessment(false);
-        }
-    };
-
-    const requestAssignAssessment = (event) => {
-        event.preventDefault();
-
-        const selectedCandidate = candidates.find(
-            (candidate) => candidate.id === assignForm.candidateId
-        );
-
-        const selectedAssessment = assessments.find(
-            (assessment) => assessment.id === assignForm.assessmentId
-        );
-
-        setConfirmAction({
-            title: "Assign assessment?",
-            message: `Assign "${selectedAssessment?.title || "this assessment"}" to ${selectedCandidate?.name || "this candidate"
-                }?`,
-            confirmText: "Assign Assessment",
-            onConfirm: handleAssignAssessment,
-        });
-    };
-
     const handleGradeAssignment = async (assignmentId) => {
-        if (gradingAssignmentId) {
-            return;
-        }
-
         const gradeForm = gradeForms[assignmentId];
 
-        if (!gradeForm || gradeForm.score === undefined || gradeForm.score === "") {
-            showWarning("Score is required before grading.");
+        if (!gradeForm?.score || gradeForm.score === "") {
+            showError("Please enter a score.");
             return;
         }
 
@@ -673,39 +467,27 @@ function AdminDashboard() {
                 feedback: gradeForm.feedback || "",
             });
 
-            showSuccess("Assignment graded successfully.");
-            setConfirmAction(null);
-
+            showSuccess("Grade saved successfully.");
             setGradeForms((current) => ({
                 ...current,
-                [assignmentId]: {
-                    score: "",
-                    feedback: "",
-                },
+                [assignmentId]: { score: "", feedback: "" },
             }));
-
+            setConfirmAction(null);
             await fetchDashboardData();
         } catch (err) {
-            showError(getApiErrorMessage(err, "Failed to grade assignment"));
+            showError(getApiErrorMessage(err, "Failed to save grade"));
         } finally {
             setGradingAssignmentId(null);
         }
     };
 
     const requestGradeAssignment = (assignmentId) => {
-        const gradeForm = gradeForms[assignmentId];
-
-        if (!gradeForm || gradeForm.score === undefined || gradeForm.score === "") {
-            showWarning("Score is required before grading.");
-            return;
-        }
-
         const assignment = assignments.find((item) => item.id === assignmentId);
 
         setConfirmAction({
             title: "Save manual grade?",
-            message: `Save score ${gradeForm.score} for ${assignment?.candidateName || "this candidate"
-                } on "${assignment?.assessmentTitle || "this assessment"}"?`,
+            message: `Save grade for ${assignment?.candidateName || "this candidate"} on "${assignment?.assessmentTitle || "this assessment"
+                }"?`,
             confirmText: "Save Grade",
             onConfirm: () => handleGradeAssignment(assignmentId),
         });
@@ -749,51 +531,77 @@ function AdminDashboard() {
         );
     };
 
-    return (
-        <div className="page-container admin-page">
-            <div className="dashboard-header">
-                <div>
-                    <p className="eyebrow">Organization Workspace</p>
-                    <h1>Admin Dashboard</h1>
-                    <p>
-                        Welcome, {user?.fullName}. Manage candidates, assessments,
-                        and results.
-                    </p>
-                </div>
+    const closeConfirmModal = () => {
+        setConfirmAction(null);
+    };
 
-                <div className="dashboard-header-actions">
-                    <button
-                        type="button"
-                        className="secondary-button"
-                        onClick={fetchDashboardData}
-                        disabled={loadingDashboard}
-                    >
-                        {loadingDashboard ? "Refreshing..." : "Refresh"}
-                    </button>
-                </div>
-            </div>
+    const confirmLoading = gradingAssignmentId || executingAssignmentId || assigningAssessment;
 
-            {loadingDashboard && (
-                <div className="info-box">
-                    Loading latest dashboard data...
-                </div>
-            )}
+    // ---- Dashboard Tabs ----
 
-            <AdminStats stats={dashboardStats} />
-
-            <div className="admin-grid">
-                <CandidateInviteForm
+    const dashboardTabs = [
+        {
+            id: "overview",
+            label: "Overview",
+            icon: "overview",
+            content: (
+                <AdminOverviewPanel
+                    stats={dashboardStats}
+                    loadingDashboard={loadingDashboard}
+                    onRefresh={fetchDashboardData}
+                    assignments={assignments}
+                    assessments={assessments}
+                    candidates={candidates}
+                />
+            ),
+        },
+        {
+            id: "candidates",
+            label: "Manage Candidates",
+            icon: "candidates",
+            content: (
+                <ManageCandidatesPanel
+                    candidates={paginatedCandidates}
+                    filteredCount={filteredCandidates.length}
+                    page={candidatePage}
+                    pageSize={ADMIN_PAGE_SIZE}
+                    candidateSearch={candidateSearch}
+                    candidateStatusFilter={candidateStatusFilter}
+                    onCandidateSearchChange={setCandidateSearch}
+                    onCandidateStatusFilterChange={setCandidateStatusFilter}
+                    onPageChange={setCandidatePage}
                     candidateForm={candidateForm}
                     creatingCandidate={creatingCandidate}
                     onCandidateChange={handleCandidateChange}
                     onCreateCandidate={handleCreateCandidate}
                 />
-
-                <AssessmentCreateForm
+            ),
+        },
+        {
+            id: "create",
+            label: "Create Assessment",
+            icon: "assessment",
+            content: (
+                <CreateAssessmentPanel
                     assessmentForm={assessmentForm}
                     creatingAssessment={creatingAssessment}
                     wizardOpen={assessmentWizardOpen}
                     wizardStep={assessmentWizardStep}
+                    assignForm={assignForm}
+                    assigningAssessment={assigningAssessment}
+                    candidates={candidates}
+                    assessments={assessments}
+                    tableAssessments={paginatedAssessments}
+                    filteredAssessments={filteredAssessments}
+                    assessmentPage={assessmentPage}
+                    pageSize={ADMIN_PAGE_SIZE}
+                    assessmentSearch={assessmentSearch}
+                    assessmentTypeFilter={assessmentTypeFilter}
+                    assessmentLanguageFilter={assessmentLanguageFilter}
+                    onAssessmentSearchChange={setAssessmentSearch}
+                    onAssessmentTypeFilterChange={setAssessmentTypeFilter}
+                    onAssessmentLanguageFilterChange={setAssessmentLanguageFilter}
+                    onAssessmentPageChange={setAssessmentPage}
                     onWizardOpenChange={setAssessmentWizardOpen}
                     onWizardStepChange={setAssessmentWizardStep}
                     onGenerateWithAi={() => setAiModalOpen(true)}
@@ -802,48 +610,19 @@ function AdminDashboard() {
                     onAddAssessmentTestCase={handleAddAssessmentTestCase}
                     onRemoveAssessmentTestCase={handleRemoveAssessmentTestCase}
                     onCreateAssessment={handleCreateAssessment}
-                />
-
-                <AssessmentAssignForm
-                    candidates={candidates}
-                    assessments={assessments}
-                    assignForm={assignForm}
-                    assigningAssessment={assigningAssessment}
                     onAssignChange={handleAssignChange}
                     onAssignAssessment={requestAssignAssessment}
                 />
-            </div>
-
-            <div className="dashboard-sections">
-                <CandidateTable
-                    candidates={paginatedCandidates}
-                    totalItems={filteredCandidates.length}
-                    page={candidatePage}
-                    pageSize={ADMIN_PAGE_SIZE}
-                    candidateSearch={candidateSearch}
-                    candidateStatusFilter={candidateStatusFilter}
-                    onCandidateSearchChange={setCandidateSearch}
-                    onCandidateStatusFilterChange={setCandidateStatusFilter}
-                    onPageChange={setCandidatePage}
-                />
-
-                <AssessmentDetailsTable
-                    assessments={paginatedAssessments}
-                    totalItems={filteredAssessments.length}
-                    page={assessmentPage}
-                    pageSize={ADMIN_PAGE_SIZE}
-                    assessmentSearch={assessmentSearch}
-                    assessmentTypeFilter={assessmentTypeFilter}
-                    assessmentLanguageFilter={assessmentLanguageFilter}
-                    onAssessmentSearchChange={setAssessmentSearch}
-                    onAssessmentTypeFilterChange={setAssessmentTypeFilter}
-                    onAssessmentLanguageFilterChange={setAssessmentLanguageFilter}
-                    onPageChange={setAssessmentPage}
-                />
-
-                <AssignmentResultsTable
+            ),
+        },
+        {
+            id: "results",
+            label: "View Results",
+            icon: "results",
+            content: (
+                <ViewResultsPanel
                     assignments={paginatedAssignments}
-                    totalItems={filteredAssignments.length}
+                    filteredCount={filteredAssignments.length}
                     page={assignmentPage}
                     pageSize={ADMIN_PAGE_SIZE}
                     assignmentSearch={assignmentSearch}
@@ -859,18 +638,34 @@ function AdminDashboard() {
                     onPageChange={setAssignmentPage}
                     onToggleDetails={handleToggleAssignmentDetails}
                     onExecuteAssignment={requestExecuteAssignment}
+                    expandedAssignment={expandedAssignment}
+                    gradeForms={gradeForms}
+                    gradingAssignmentId={gradingAssignmentId}
+                    onGradeChange={handleGradeChange}
+                    onGradeAssignment={requestGradeAssignment}
                 />
+            ),
+        },
+        {
+            id: "profile",
+            label: "Profile",
+            icon: "profile",
+            content: (
+                <AdminProfilePanel user={user} />
+            ),
+        },
+    ];
 
-                {expandedAssignmentId && (
-                    <AssignmentDetailsPanel
-                        assignment={expandedAssignment}
-                        gradeForms={gradeForms}
-                        gradingAssignmentId={gradingAssignmentId}
-                        onGradeChange={handleGradeChange}
-                        onGradeAssignment={requestGradeAssignment}
-                    />
-                )}
-            </div>
+    return (
+        <>
+            <DashboardLayout
+                tabs={dashboardTabs}
+                activeTabId={activeTab}
+                onTabChange={setActiveTab}
+                userRole="admin"
+                userName={user?.fullName}
+                userTitle="Organization Admin"
+            />
 
             <AiAssessmentGeneratorModal
                 isOpen={aiModalOpen}
@@ -888,7 +683,7 @@ function AdminDashboard() {
                 onCancel={closeConfirmModal}
                 onConfirm={confirmAction?.onConfirm}
             />
-        </div>
+        </>
     );
 }
 
