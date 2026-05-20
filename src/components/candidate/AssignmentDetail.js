@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import StatusBadge from "../common/StatusBadge";
 import DetailItem from "../common/DetailItem";
 import CodeBlock from "../common/CodeBlock";
@@ -13,10 +14,12 @@ function AssignmentDetail({
     answer,
     submittingAssignmentId,
     runningAssignmentId,
+    startingAssignmentId,
     runResult,
     onCodeChange,
     onAnswerChange,
     onRunCode,
+    onStartAssignment,
     onSubmit,
 }) {
     const isCodingChallenge = assignment.assessmentType === "CODING_CHALLENGE";
@@ -24,10 +27,73 @@ function AssignmentDetail({
 
     const isSubmitting = submittingAssignmentId === assignment.id;
     const isRunning = runningAssignmentId === assignment.id;
+    const isStarting = startingAssignmentId === assignment.id;
 
     const isAnySubmitting = Boolean(submittingAssignmentId);
     const isAnyRunning = Boolean(runningAssignmentId);
-    const isBusy = isAnySubmitting || isAnyRunning;
+    const isAnyStarting = Boolean(startingAssignmentId);
+    const isBusy = isAnySubmitting || isAnyRunning || isAnyStarting;
+    const isTimed = Boolean(assignment.timeLimitMinutes);
+    const mustStartTimedAssignment = isAssigned && isTimed && !assignment.startedAt;
+    const expiresAtMs = useMemo(
+        () => (assignment.expiresAt ? new Date(assignment.expiresAt).getTime() : null),
+        [assignment.expiresAt]
+    );
+    const dueAtMs = useMemo(
+        () => (assignment.dueAt ? new Date(assignment.dueAt).getTime() : null),
+        [assignment.dueAt]
+    );
+    const [nowMs, setNowMs] = useState(Date.now());
+    const [autoSubmitAttempted, setAutoSubmitAttempted] = useState(false);
+    const remainingMs =
+        expiresAtMs && Number.isFinite(expiresAtMs)
+            ? Math.max(expiresAtMs - nowMs, 0)
+            : null;
+    const isExpired = remainingMs === 0;
+    const isPastDue =
+        dueAtMs && Number.isFinite(dueAtMs) && nowMs > dueAtMs;
+    const isLocked = Boolean(isExpired || isPastDue);
+
+    useEffect(() => {
+        setNowMs(Date.now());
+        setAutoSubmitAttempted(false);
+    }, [assignment.id]);
+
+    useEffect(() => {
+        if (!isAssigned || (!expiresAtMs && !dueAtMs)) {
+            return undefined;
+        }
+
+        const timer = window.setInterval(() => {
+            setNowMs(Date.now());
+        }, 1000);
+
+        return () => window.clearInterval(timer);
+    }, [dueAtMs, expiresAtMs, isAssigned]);
+
+    useEffect(() => {
+        if (
+            !isAssigned ||
+            !assignment.startedAt ||
+            !expiresAtMs ||
+            remainingMs !== 0 ||
+            autoSubmitAttempted ||
+            isAnySubmitting
+        ) {
+            return;
+        }
+
+        setAutoSubmitAttempted(true);
+        onSubmit(assignment, { autoSubmit: true });
+    }, [
+        assignment,
+        autoSubmitAttempted,
+        expiresAtMs,
+        isAnySubmitting,
+        isAssigned,
+        onSubmit,
+        remainingMs,
+    ]);
 
     const visibleTestCases = Array.isArray(assignment.testCases)
         ? assignment.testCases.filter((testCase) => !testCase.hidden)
@@ -70,6 +136,26 @@ function AssignmentDetail({
                     value={formatDate(assignment.assignedAt)}
                 />
                 <DetailItem
+                    label="Due At"
+                    value={formatDate(assignment.dueAt)}
+                />
+                <DetailItem
+                    label="Time Limit"
+                    value={
+                        assignment.timeLimitMinutes
+                            ? `${assignment.timeLimitMinutes} minutes`
+                            : "No limit"
+                    }
+                />
+                <DetailItem
+                    label="Started At"
+                    value={formatDate(assignment.startedAt)}
+                />
+                <DetailItem
+                    label="Expires At"
+                    value={formatDate(assignment.expiresAt)}
+                />
+                <DetailItem
                     label="Submitted At"
                     value={formatDate(assignment.submittedAt)}
                 />
@@ -82,6 +168,42 @@ function AssignmentDetail({
                     }
                 />
             </div>
+
+            {mustStartTimedAssignment && (
+                <div className="start-assessment-box">
+                    <h4>Ready to begin?</h4>
+                    <p>
+                        This assessment has a {assignment.timeLimitMinutes}-minute time
+                        limit. The timer starts when you press Start Assessment.
+                    </p>
+                    <button
+                        className="primary-button"
+                        type="button"
+                        onClick={() => onStartAssignment(assignment)}
+                        disabled={isBusy || isPastDue}
+                    >
+                        {isStarting ? "Starting..." : "Start Assessment"}
+                    </button>
+                </div>
+            )}
+
+            {isAssigned && assignment.startedAt && assignment.expiresAt && (
+                <div className={isExpired ? "timer-box expired" : "timer-box"}>
+                    <strong>
+                        {isExpired
+                            ? "Time expired"
+                            : `Time remaining: ${formatDuration(remainingMs)}`}
+                    </strong>
+                    <span>Expires at {formatDate(assignment.expiresAt)}</span>
+                </div>
+            )}
+
+            {isAssigned && isPastDue && (
+                <div className="timer-box expired">
+                    <strong>Due date passed</strong>
+                    <span>Due at {formatDate(assignment.dueAt)}</span>
+                </div>
+            )}
 
             {isCodingChallenge && visibleTestCases.length > 0 && (
                 <div className="test-case-preview-section">
@@ -115,7 +237,7 @@ function AssignmentDetail({
                 </div>
             )}
 
-            {isAssigned && isCodingChallenge && (
+            {isAssigned && isCodingChallenge && !mustStartTimedAssignment && (
                 <div className="submission-panel">
                     <label>Your Code</label>
                     <textarea
@@ -124,14 +246,14 @@ function AssignmentDetail({
                         value={code}
                         onChange={(event) => onCodeChange(assignment.id, event.target.value)}
                         placeholder="Write your code here"
-                        disabled={isBusy}
+                        disabled={isBusy || isLocked}
                     />
 
                     <div className="button-row-left">
                         <button
                             className="secondary-button"
                             onClick={() => onRunCode(assignment)}
-                            disabled={isBusy}
+                            disabled={isBusy || isLocked}
                         >
                             {isRunning ? "Running..." : "Run Code"}
                         </button>
@@ -139,7 +261,7 @@ function AssignmentDetail({
                         <button
                             className="primary-button"
                             onClick={() => onSubmit(assignment)}
-                            disabled={isBusy}
+                            disabled={isBusy || isLocked}
                         >
                             {isSubmitting ? "Submitting..." : "Submit Code"}
                         </button>
@@ -149,7 +271,7 @@ function AssignmentDetail({
                 </div>
             )}
 
-            {isAssigned && !isCodingChallenge && (
+            {isAssigned && !isCodingChallenge && !mustStartTimedAssignment && (
                 <div className="submission-panel">
                     <label>Your Answer</label>
                     <textarea
@@ -157,13 +279,13 @@ function AssignmentDetail({
                         value={answer}
                         onChange={(event) => onAnswerChange(assignment.id, event.target.value)}
                         placeholder="Write your answer here"
-                        disabled={isAnySubmitting}
+                        disabled={isAnySubmitting || isAnyStarting || isLocked}
                     />
 
                     <button
                         className="primary-button"
                         onClick={() => onSubmit(assignment)}
-                        disabled={isAnySubmitting}
+                        disabled={isAnySubmitting || isAnyStarting || isLocked}
                     >
                         {isSubmitting ? "Submitting..." : "Submit Answer"}
                     </button>
@@ -375,6 +497,21 @@ function getRunResultStatus(result) {
     }
 
     return "Sample tests failed";
+}
+
+function formatDuration(milliseconds) {
+    const totalSeconds = Math.max(Math.ceil((milliseconds || 0) / 1000), 0);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const paddedMinutes = String(minutes).padStart(2, "0");
+    const paddedSeconds = String(seconds).padStart(2, "0");
+
+    if (hours > 0) {
+        return `${hours}:${paddedMinutes}:${paddedSeconds}`;
+    }
+
+    return `${minutes}:${paddedSeconds}`;
 }
 
 export default AssignmentDetail;

@@ -1,6 +1,6 @@
 export function formatDate(value) {
     if (!value) {
-        return "—";
+        return "-";
     }
 
     return new Date(value).toLocaleString();
@@ -8,7 +8,7 @@ export function formatDate(value) {
 
 export function formatLanguage(language) {
     if (!language) {
-        return "—";
+        return "-";
     }
 
     if (language === "JAVASCRIPT") {
@@ -32,7 +32,7 @@ export function formatLanguage(language) {
 
 export function formatAssessmentType(type) {
     if (!type) {
-        return "—";
+        return "-";
     }
 
     if (type === "CODING_CHALLENGE") {

@@ -26,6 +26,7 @@ function CandidateDashboard() {
 
     // ---- Loading States ----
     const [loadingAssignments, setLoadingAssignments] = useState(false);
+    const [startingAssignmentId, setStartingAssignmentId] = useState(null);
     const [submittingAssignmentId, setSubmittingAssignmentId] = useState(null);
     const [runningAssignmentId, setRunningAssignmentId] = useState(null);
 
@@ -170,24 +171,55 @@ function CandidateDashboard() {
         }));
     };
 
-    const handleSubmit = async (assignment) => {
+    const handleStartAssignment = async (assignment) => {
+        if (startingAssignmentId || submittingAssignmentId || runningAssignmentId) {
+            return;
+        }
+
+        setStartingAssignmentId(assignment.id);
+
+        try {
+            await assessmentApi.startAssignment(assignment.id);
+            showSuccess("Assessment started.");
+            await fetchAssignments();
+        } catch (err) {
+            showError(getApiErrorMessage(err, "Failed to start assessment"));
+        } finally {
+            setStartingAssignmentId(null);
+        }
+    };
+
+    const handleSubmit = async (assignment, options = {}) => {
         if (submittingAssignmentId) {
             return;
         }
 
+        const isAutoSubmit = options.autoSubmit === true;
         const isCodingChallenge = assignment.assessmentType === "CODING_CHALLENGE";
 
         const payload = isCodingChallenge
             ? { submittedCode: codes[assignment.id] }
             : { submittedAnswer: answers[assignment.id] };
 
+        if (isAutoSubmit) {
+            payload.autoSubmitted = true;
+        }
+
         if (isCodingChallenge && (!payload.submittedCode || !payload.submittedCode.trim())) {
-            showWarning("Please enter your code before submitting.");
+            showWarning(
+                isAutoSubmit
+                    ? "Time expired, but no code was available to submit."
+                    : "Please enter your code before submitting."
+            );
             return;
         }
 
         if (!isCodingChallenge && (!payload.submittedAnswer || !payload.submittedAnswer.trim())) {
-            showWarning("Please enter your answer before submitting.");
+            showWarning(
+                isAutoSubmit
+                    ? "Time expired, but no answer was available to submit."
+                    : "Please enter your answer before submitting."
+            );
             return;
         }
 
@@ -196,7 +228,11 @@ function CandidateDashboard() {
         try {
             await assessmentApi.submitAssignment(assignment.id, payload);
 
-            showSuccess("Assessment submitted successfully.");
+            showSuccess(
+                isAutoSubmit
+                    ? "Time expired. Assessment submitted automatically."
+                    : "Assessment submitted successfully."
+            );
 
             setAnswers((current) => ({
                 ...current,
@@ -309,6 +345,7 @@ function CandidateDashboard() {
                     answer={answers[selectedAssignment?.id] || ""}
                     submittingAssignmentId={submittingAssignmentId}
                     runningAssignmentId={runningAssignmentId}
+                    startingAssignmentId={startingAssignmentId}
                     runResult={runResults[selectedAssignment?.id]}
                     onPageChange={setPage}
                     onSelectAssignment={setSelectedAssignmentId}
@@ -321,6 +358,7 @@ function CandidateDashboard() {
                     onCodeChange={handleCodeChange}
                     onAnswerChange={handleAnswerChange}
                     onRunCode={handleRunCode}
+                    onStartAssignment={handleStartAssignment}
                     onSubmit={handleSubmit}
                 />
             ),

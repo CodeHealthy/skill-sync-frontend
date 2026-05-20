@@ -54,7 +54,9 @@ function AssignmentList({
 
                         <div className="assessment-list-meta">
                             <span>{formatLanguage(assignment.language)}</span>
-                            <span>{formatDate(assignment.assignedAt)}</span>
+                            <span>
+                                Due {formatDate(assignment.dueAt)}
+                            </span>
                         </div>
                     </button>
                 ))}

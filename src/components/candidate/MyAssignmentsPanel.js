@@ -21,6 +21,7 @@ function MyAssignmentsPanel({
     answer,
     submittingAssignmentId,
     runningAssignmentId,
+    startingAssignmentId,
     runResult,
     onPageChange,
     onSelectAssignment,
@@ -33,6 +34,7 @@ function MyAssignmentsPanel({
     onCodeChange,
     onAnswerChange,
     onRunCode,
+    onStartAssignment,
     onSubmit,
 }) {
     return (
@@ -91,10 +93,12 @@ function MyAssignmentsPanel({
                         answer={answer}
                         submittingAssignmentId={submittingAssignmentId}
                         runningAssignmentId={runningAssignmentId}
+                        startingAssignmentId={startingAssignmentId}
                         runResult={runResult}
                         onCodeChange={onCodeChange}
                         onAnswerChange={onAnswerChange}
                         onRunCode={onRunCode}
+                        onStartAssignment={onStartAssignment}
                         onSubmit={onSubmit}
                     />
                 ) : (

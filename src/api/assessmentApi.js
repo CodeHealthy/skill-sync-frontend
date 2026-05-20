@@ -21,6 +21,10 @@ export const assessmentApi = {
         return axiosClient.get("/assessments/my-assignments");
     },
 
+    startAssignment: (assignmentId) => {
+        return axiosClient.post(`/assessments/assignments/${assignmentId}/start`);
+    },
+
     submitAssignment: (assignmentId, payload) => {
         return axiosClient.post(
             `/assessments/assignments/${assignmentId}/submit`,

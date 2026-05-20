@@ -41,6 +41,37 @@ function AssessmentAssignForm({
                     ))}
                 </select>
 
+                <div className="two-column-form">
+                    <div>
+                        <label>Due Date</label>
+                        <input
+                            name="dueAt"
+                            type="datetime-local"
+                            value={assignForm.dueAt}
+                            onChange={onAssignChange}
+                        />
+                    </div>
+
+                    <div>
+                        <label>Time Limit</label>
+                        <input
+                            name="timeLimitMinutes"
+                            type="number"
+                            min="1"
+                            max="480"
+                            value={assignForm.timeLimitMinutes}
+                            onChange={onAssignChange}
+                            placeholder="Minutes"
+                        />
+                    </div>
+                </div>
+
+                <p className="small-text">
+                    Due date and time limit are optional. If set, candidates cannot
+                    work after the due date and timed assessments are enforced
+                    automatically.
+                </p>
+
                 <button
                     className="primary-button"
                     type="submit"

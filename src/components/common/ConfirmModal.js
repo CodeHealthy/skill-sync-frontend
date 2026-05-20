@@ -18,7 +18,7 @@ function ConfirmModal({
             <div className="confirm-modal-card" role="dialog" aria-modal="true">
                 <div className="confirm-modal-icon-wrap">
                     <div className={danger ? "confirm-modal-icon danger" : "confirm-modal-icon"}>
-                        {danger ? "!" : "✓"}
+                        {danger ? "!" : "OK"}
                     </div>
                 </div>
 

@@ -81,6 +81,8 @@ function AdminDashboard() {
     const [assignForm, setAssignForm] = useState({
         candidateId: "",
         assessmentId: "",
+        dueAt: "",
+        timeLimitMinutes: "",
     });
 
     const [gradeForms, setGradeForms] = useState({});
@@ -233,9 +235,10 @@ function AdminDashboard() {
                 assignment.candidateEmail?.toLowerCase().includes(search) ||
                 assignment.assessmentTitle?.toLowerCase().includes(search);
 
-            const matchesStatus =
-                assignmentStatusFilter === "ALL" ||
-                assignment.status === assignmentStatusFilter;
+            const matchesStatus = matchesAssignmentStatusFilter(
+                assignment,
+                assignmentStatusFilter
+            );
 
             const matchesExecution =
                 assignmentExecutionFilter === "ALL" ||
@@ -397,7 +400,7 @@ function AdminDashboard() {
     };
 
     const handleAssignAssessment = async (event) => {
-        event.preventDefault();
+        event?.preventDefault();
 
         if (!assignForm.candidateId || !assignForm.assessmentId) {
             showError("Please select both candidate and assessment.");
@@ -407,13 +410,25 @@ function AdminDashboard() {
         setAssigningAssessment(true);
 
         try {
-            await assessmentApi.assignAssessment(
-                assignForm.candidateId,
-                assignForm.assessmentId
-            );
+            await assessmentApi.assignAssessment({
+                candidateId: assignForm.candidateId,
+                assessmentId: assignForm.assessmentId,
+                dueAt: assignForm.dueAt
+                    ? new Date(assignForm.dueAt).toISOString()
+                    : null,
+                timeLimitMinutes: assignForm.timeLimitMinutes
+                    ? Number(assignForm.timeLimitMinutes)
+                    : null,
+            });
 
             showSuccess("Assessment assigned successfully.");
-            setAssignForm({ candidateId: "", assessmentId: "" });
+            setAssignForm({
+                candidateId: "",
+                assessmentId: "",
+                dueAt: "",
+                timeLimitMinutes: "",
+            });
+            setConfirmAction(null);
             await fetchDashboardData();
         } catch (err) {
             showError(getApiErrorMessage(err, "Failed to assign assessment"));
@@ -427,6 +442,27 @@ function AdminDashboard() {
 
         if (!assignForm.candidateId || !assignForm.assessmentId) {
             showError("Please select both candidate and assessment.");
+            return;
+        }
+
+        if (assignForm.dueAt && new Date(assignForm.dueAt) <= new Date()) {
+            showError("Due date must be in the future.");
+            return;
+        }
+
+        if (
+            assignForm.timeLimitMinutes &&
+            Number(assignForm.timeLimitMinutes) <= 0
+        ) {
+            showError("Time limit must be greater than zero.");
+            return;
+        }
+
+        if (
+            assignForm.timeLimitMinutes &&
+            Number(assignForm.timeLimitMinutes) > 480
+        ) {
+            showError("Time limit cannot exceed 480 minutes.");
             return;
         }
 
@@ -685,6 +721,38 @@ function AdminDashboard() {
             />
         </>
     );
+}
+
+function matchesAssignmentStatusFilter(assignment, filter) {
+    if (filter === "ALL") {
+        return true;
+    }
+
+    if (filter === "OVERDUE") {
+        return isAssignmentOverdue(assignment);
+    }
+
+    if (filter === "EXPIRED") {
+        return isAssignmentExpired(assignment);
+    }
+
+    if (filter === "AUTO_SUBMITTED") {
+        return Boolean(assignment.autoSubmitted);
+    }
+
+    return assignment.status === filter;
+}
+
+function isAssignmentOverdue(assignment) {
+    return assignment.status === "ASSIGNED" &&
+        Boolean(assignment.dueAt) &&
+        new Date(assignment.dueAt).getTime() < Date.now();
+}
+
+function isAssignmentExpired(assignment) {
+    return assignment.status === "ASSIGNED" &&
+        Boolean(assignment.expiresAt) &&
+        new Date(assignment.expiresAt).getTime() < Date.now();
 }
 
 export default AdminDashboard;

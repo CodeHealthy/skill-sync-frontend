@@ -45,6 +45,9 @@ function AssignmentResultsTable({
                     <option value="ASSIGNED">Assigned</option>
                     <option value="SUBMITTED">Submitted</option>
                     <option value="GRADED">Graded</option>
+                    <option value="OVERDUE">Overdue</option>
+                    <option value="EXPIRED">Expired</option>
+                    <option value="AUTO_SUBMITTED">Auto-submitted</option>
                 </select>
 
                 <select
@@ -87,6 +90,7 @@ function AssignmentResultsTable({
                             <th>Execution</th>
                             <th>Tests</th>
                             <th>Score</th>
+                            <th>Due</th>
                             <th>Submitted</th>
                             <th>Actions</th>
                         </tr>
@@ -109,6 +113,7 @@ function AssignmentResultsTable({
                                 (Array.isArray(assignment.testCases)
                                     ? assignment.testCases.length
                                     : 0);
+                            const reviewFlags = getReviewFlags(assignment);
 
                             return (
                                 <tr key={assignment.id}>
@@ -136,6 +141,18 @@ function AssignmentResultsTable({
 
                                     <td data-label="Status">
                                         <StatusBadge value={assignment.status} />
+                                        {reviewFlags.length > 0 && (
+                                            <div className="review-flag-list">
+                                                {reviewFlags.map((flag) => (
+                                                    <span
+                                                        className={`review-flag review-flag-${flag.type}`}
+                                                        key={flag.label}
+                                                    >
+                                                        {flag.label}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
                                     </td>
 
                                     <td data-label="Execution">
@@ -172,6 +189,17 @@ function AssignmentResultsTable({
                                             assignment.score !== undefined
                                             ? `${assignment.score}/${assignment.maxScore || 100}`
                                             : "-"}
+                                    </td>
+
+                                    <td data-label="Due">
+                                        <div className="primary-cell">
+                                            {formatDate(assignment.dueAt)}
+                                        </div>
+                                        <div className="muted-cell">
+                                            {assignment.timeLimitMinutes
+                                                ? `${assignment.timeLimitMinutes} min limit`
+                                                : "No time limit"}
+                                        </div>
                                     </td>
 
                                     <td data-label="Submitted">
@@ -216,7 +244,7 @@ function AssignmentResultsTable({
 
                         {assignments.length === 0 && (
                             <EmptyTableRow
-                                colSpan={9}
+                                colSpan={10}
                                 message="No assignment results found."
                             />
                         )}
@@ -232,6 +260,40 @@ function AssignmentResultsTable({
             />
         </section>
     );
+}
+
+function getReviewFlags(assignment) {
+    const flags = [];
+
+    if (assignment.autoSubmitted) {
+        flags.push({ type: "auto", label: "Auto-submitted" });
+    }
+
+    if (isAssignmentOverdue(assignment)) {
+        flags.push({ type: "overdue", label: "Overdue" });
+    }
+
+    if (isAssignmentExpired(assignment)) {
+        flags.push({ type: "expired", label: "Expired" });
+    }
+
+    if (assignment.timeLimitMinutes) {
+        flags.push({ type: "timed", label: `${assignment.timeLimitMinutes} min` });
+    }
+
+    return flags;
+}
+
+function isAssignmentOverdue(assignment) {
+    return assignment.status === "ASSIGNED" &&
+        Boolean(assignment.dueAt) &&
+        new Date(assignment.dueAt).getTime() < Date.now();
+}
+
+function isAssignmentExpired(assignment) {
+    return assignment.status === "ASSIGNED" &&
+        Boolean(assignment.expiresAt) &&
+        new Date(assignment.expiresAt).getTime() < Date.now();
 }
 
 export default AssignmentResultsTable;
