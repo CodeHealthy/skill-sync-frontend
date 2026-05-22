@@ -1,12 +1,19 @@
 function CandidateInviteForm({
     candidateForm,
     creatingCandidate,
+    canInviteCandidate = true,
     onCandidateChange,
     onCreateCandidate,
 }) {
     return (
         <div className="form-card compact-form-card">
             <h2>Invite Candidate</h2>
+
+            {!canInviteCandidate && (
+                <div className="warning-box compact-warning-box">
+                    Your current plan has reached its monthly candidate invite limit.
+                </div>
+            )}
 
             <form onSubmit={onCreateCandidate}>
                 <label>Candidate Name</label>
@@ -29,7 +36,7 @@ function CandidateInviteForm({
                 <button
                     className="primary-button"
                     type="submit"
-                    disabled={creatingCandidate}
+                    disabled={creatingCandidate || !canInviteCandidate}
                 >
                     {creatingCandidate ? "Inviting..." : "Invite Candidate"}
                 </button>

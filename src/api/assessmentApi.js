@@ -25,6 +25,20 @@ export const assessmentApi = {
         return axiosClient.post(`/assessments/assignments/${assignmentId}/start`);
     },
 
+    startAssignmentSection: (assignmentId, sectionId) => {
+        return axiosClient.post(
+            `/assessments/assignments/${assignmentId}/sections/start`,
+            { sectionId }
+        );
+    },
+
+    completeAssignmentSection: (assignmentId, sectionId) => {
+        return axiosClient.post(
+            `/assessments/assignments/${assignmentId}/sections/complete`,
+            { sectionId }
+        );
+    },
+
     submitAssignment: (assignmentId, payload) => {
         return axiosClient.post(
             `/assessments/assignments/${assignmentId}/submit`,

@@ -6,6 +6,8 @@ import "../../css/DashboardPanels.css";
 function CreateAssessmentPanel({
     assessmentForm,
     creatingAssessment,
+    canCreateAssessment,
+    canUseAiGeneration,
     wizardOpen,
     wizardStep,
     assignForm,
@@ -27,6 +29,7 @@ function CreateAssessmentPanel({
     onWizardStepChange,
     onGenerateWithAi,
     onAssessmentChange,
+    onAssessmentPatch,
     onAssessmentTestCaseChange,
     onAddAssessmentTestCase,
     onRemoveAssessmentTestCase,
@@ -40,12 +43,15 @@ function CreateAssessmentPanel({
                 <AssessmentCreateForm
                     assessmentForm={assessmentForm}
                     creatingAssessment={creatingAssessment}
+                    canCreateAssessment={canCreateAssessment}
+                    canUseAiGeneration={canUseAiGeneration}
                     wizardOpen={wizardOpen}
                     wizardStep={wizardStep}
                     onWizardOpenChange={onWizardOpenChange}
                     onWizardStepChange={onWizardStepChange}
                     onGenerateWithAi={onGenerateWithAi}
                     onAssessmentChange={onAssessmentChange}
+                    onAssessmentPatch={onAssessmentPatch}
                     onAssessmentTestCaseChange={onAssessmentTestCaseChange}
                     onAddAssessmentTestCase={onAddAssessmentTestCase}
                     onRemoveAssessmentTestCase={onRemoveAssessmentTestCase}

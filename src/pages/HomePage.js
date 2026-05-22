@@ -148,7 +148,7 @@ function HomePage() {
                     <span className="eyebrow">For Recruiters</span>
                     <h2>Manage assessments with confidence</h2>
                     <p>
-                        Invite candidates, build quiz or coding assessments, assign
+                        Invite candidates, build MCQ, short-answer, or coding assessments, assign
                         tests, execute submissions, and manually grade results when
                         needed.
                     </p>
@@ -178,7 +178,7 @@ function HomePage() {
                     <ul className="landing-check-list">
                         <li>See assignments across organizations</li>
                         <li>Run code before final submission</li>
-                        <li>Submit quiz answers or coding solutions</li>
+                        <li>Submit MCQ answers, short responses, or coding solutions</li>
                         <li>Review scores, output, and feedback</li>
                     </ul>
 

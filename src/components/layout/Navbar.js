@@ -75,6 +75,9 @@ function Navbar() {
                             <a href="/#candidates" className="navbar-link" onClick={closeMenu}>
                                 Candidates
                             </a>
+                            <NavLink to="/pricing" className="navbar-link" onClick={closeMenu}>
+                                Pricing
+                            </NavLink>
                         </>
                     )}
 
@@ -142,6 +145,16 @@ function Navbar() {
                                     >
                                         Settings
                                     </Link>
+                                    {user?.role === "ADMIN" && (
+                                        <Link
+                                            to="/pricing"
+                                            className="navbar-user-dropdown-item"
+                                            onClick={closeMenu}
+                                            role="menuitem"
+                                        >
+                                            Plans
+                                        </Link>
+                                    )}
                                     <button
                                         type="button"
                                         className="navbar-user-dropdown-item danger"

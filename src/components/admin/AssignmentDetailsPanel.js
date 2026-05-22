@@ -2,11 +2,24 @@ import { useEffect, useState } from "react";
 import CodeBlock from "../common/CodeBlock";
 import DetailItem from "../common/DetailItem";
 import StatusBadge from "../common/StatusBadge";
-import { formatDate, formatLanguage } from "../../utils/formatters";
+import {
+    getHiringSignal,
+    getQuestionBreakdown,
+    getReviewFlags,
+    getScorePercent,
+} from "../../features/results/resultReviewUtils";
+import {
+    buildManualReviewItems,
+    calculateReviewScore,
+    getAssessmentSections,
+    getAutoScoredPoints,
+} from "../../features/results/manualReviewUtils";
+import { formatAssessmentType, formatDate, formatLanguage } from "../../utils/formatters";
 
 const DETAIL_TABS = [
     { id: "summary", label: "Summary" },
-    { id: "submission", label: "Submission" },
+    { id: "scorecard", label: "Scorecard" },
+    { id: "submission", label: "Raw Submission" },
     { id: "tests", label: "Test Cases" },
     { id: "grading", label: "Grading" },
 ];
@@ -50,6 +63,9 @@ function AssignmentDetailsPanel({
     );
 
     const reviewFlags = getReviewFlags(assignment);
+    const questionBreakdown = getQuestionBreakdown(assignment);
+    const scorePercent = getScorePercent(assignment);
+    const hiringSignal = getHiringSignal(assignment);
     const scoreLabel = assignment.score !== null && assignment.score !== undefined
         ? `${assignment.score}/${assignment.maxScore || 100}`
         : "Not graded";
@@ -65,6 +81,9 @@ function AssignmentDetailsPanel({
                 </div>
 
                 <div className="detail-status-stack">
+                    <span className={`hiring-signal hiring-signal-${hiringSignal.type}`}>
+                        {hiringSignal.label}
+                    </span>
                     <StatusBadge value={assignment.status} />
                     {assignment.autoSubmitted && (
                         <span className="review-flag review-flag-auto">
@@ -87,6 +106,11 @@ function AssignmentDetailsPanel({
                     hint={testCaseResults.length > 0 ? "passed" : "setup"}
                 />
                 <ReviewMetric label="Score" value={scoreLabel} hint="current" />
+                <ReviewMetric
+                    label="Percent"
+                    value={scorePercent === null ? "-" : `${scorePercent}%`}
+                    hint="score"
+                />
                 <ReviewMetric
                     label="Execution"
                     value={assignment.executionStatus || "NOT_RUN"}
@@ -137,11 +161,17 @@ function AssignmentDetailsPanel({
                         testCaseResults={testCaseResults}
                         totalResultPoints={totalResultPoints}
                         awardedResultPoints={awardedResultPoints}
+                        questionBreakdown={questionBreakdown}
+                        scorePercent={scorePercent}
                     />
                 )}
 
                 {activeTab === "submission" && (
                     <SubmissionTab assignment={assignment} />
+                )}
+
+                {activeTab === "scorecard" && (
+                    <ScorecardTab assignment={assignment} />
                 )}
 
                 {activeTab === "tests" && (
@@ -174,11 +204,13 @@ function SummaryTab({
     testCaseResults,
     totalResultPoints,
     awardedResultPoints,
+    questionBreakdown,
+    scorePercent,
 }) {
     return (
         <>
             <div className="detail-grid compact-detail-grid">
-                <DetailItem label="Type" value={assignment.assessmentType} />
+                <DetailItem label="Type" value={formatAssessmentType(assignment.assessmentType)} />
                 <DetailItem label="Language" value={formatLanguage(assignment.language)} />
                 <DetailItem
                     label="Execution Status"
@@ -214,14 +246,47 @@ function SummaryTab({
                     <DetailItem label="Hidden Tests" value={hiddenResultCount} />
                 </div>
             )}
+
+            <div className="reviewer-section">
+                <div className="reviewer-section-header">
+                    <div>
+                        <h4>Assessment Breakdown</h4>
+                        <p>Score distribution and review workload for this submission.</p>
+                    </div>
+                </div>
+
+                <div className="score-breakdown-grid">
+                    <ScoreBreakdownItem
+                        label="Coding"
+                        count={questionBreakdown.coding.count}
+                        points={questionBreakdown.coding.points}
+                    />
+                    <ScoreBreakdownItem
+                        label="Multiple Choice"
+                        count={questionBreakdown.multipleChoice.count}
+                        points={questionBreakdown.multipleChoice.points}
+                    />
+                    <ScoreBreakdownItem
+                        label="Short Answer"
+                        count={questionBreakdown.shortAnswer.count}
+                        points={questionBreakdown.shortAnswer.points}
+                    />
+                    <ScoreBreakdownItem
+                        label="Final Score"
+                        count={scorePercent === null ? "-" : `${scorePercent}%`}
+                        points={assignment.score ?? "-"}
+                    />
+                </div>
+            </div>
         </>
     );
 }
 
 function SubmissionTab({ assignment }) {
     return (
-        <div className="reviewer-section-stack">
+            <div className="reviewer-section-stack">
             <CodeBlock title="Prompt" value={assignment.prompt} maxHeight="180px" />
+            <SubmittedAnswersPanel assignment={assignment} />
             <CodeBlock title="Submitted Answer" value={assignment.submittedAnswer} maxHeight="180px" />
             <CodeBlock title="Submitted Code" value={assignment.submittedCode} maxHeight="260px" />
             <CodeBlock title="Expected Output" value={assignment.expectedOutput} maxHeight="140px" />
@@ -229,6 +294,192 @@ function SubmissionTab({ assignment }) {
             <CodeBlock title="Execution Error" value={assignment.executionError} maxHeight="140px" />
         </div>
     );
+}
+
+function ScorecardTab({ assignment }) {
+    const questionReviews = buildManualReviewItems(
+        assignment,
+        assignment.questionReviews || []
+    );
+
+    return (
+        <div className="reviewer-section-stack">
+            {getAssessmentSections(assignment).map((section, sectionIndex) => {
+                const questions = section.questions || [];
+
+                if (questions.length === 0) {
+                    return null;
+                }
+
+                const sectionPoints = questions.reduce(
+                    (total, question) => total + Number(question.points || 0),
+                    0
+                );
+                const sectionAwarded = questions.reduce((total, question) => {
+                    const review = questionReviews.find(
+                        (item) => item.questionId === question.id
+                    );
+
+                    return total + Number(review?.awardedPoints || 0);
+                }, 0);
+
+                return (
+                    <section className="reviewer-section" key={section.id || sectionIndex}>
+                        <div className="reviewer-section-header">
+                            <div>
+                                <h4>{section.title || `Section ${sectionIndex + 1}`}</h4>
+                                {section.description && <p>{section.description}</p>}
+                            </div>
+                            <strong>{sectionAwarded}/{sectionPoints} pts</strong>
+                        </div>
+
+                        <div className="scorecard-question-list">
+                            {questions.map((question, questionIndex) => {
+                                const review = questionReviews.find(
+                                    (item) => item.questionId === question.id
+                                ) || {};
+
+                                return (
+                                    <ScorecardQuestion
+                                        assignment={assignment}
+                                        question={question}
+                                        questionIndex={questionIndex}
+                                        review={review}
+                                        key={question.id || questionIndex}
+                                    />
+                                );
+                            })}
+                        </div>
+                    </section>
+                );
+            })}
+        </div>
+    );
+}
+
+function ScorecardQuestion({ assignment, question, questionIndex, review }) {
+    return (
+        <div className="scorecard-question-card">
+            <div className="scorecard-question-header">
+                <div>
+                    <strong>{question.title || `Question ${questionIndex + 1}`}</strong>
+                    <span>{formatQuestionType(question.type)}</span>
+                </div>
+                <strong>{review.awardedPoints || 0}/{review.maxPoints || question.points || 0} pts</strong>
+            </div>
+
+            <p>{question.prompt}</p>
+
+            <div className="scorecard-answer-grid">
+                <div>
+                    <span>Candidate answer</span>
+                    <p>{resolveSubmittedValue(assignment, question.id, assignment.submittedAnswers?.[question.id]) || "No answer submitted"}</p>
+                </div>
+                {question.correctAnswer && (
+                    <div>
+                        <span>Reviewer guidance</span>
+                        <p>{question.correctAnswer}</p>
+                    </div>
+                )}
+            </div>
+
+            {question.type === "MULTIPLE_CHOICE" && (
+                <div className="scorecard-option-list">
+                    {(question.options || []).map((option) => (
+                        <span
+                            className={
+                                option.id === assignment.submittedAnswers?.[question.id]
+                                    ? "scorecard-option selected"
+                                    : "scorecard-option"
+                            }
+                            key={option.id}
+                        >
+                            {option.text}
+                            {option.correct ? " (correct)" : ""}
+                        </span>
+                    ))}
+                </div>
+            )}
+
+            {review.notes && (
+                <div className="scorecard-review-note">
+                    <span>Reviewer note</span>
+                    <p>{review.notes}</p>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function SubmittedAnswersPanel({ assignment }) {
+    const entries = Object.entries(assignment.submittedAnswers || {});
+
+    if (entries.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className="reviewer-section">
+            <div className="reviewer-section-header">
+                <div>
+                    <h4>Structured Answers</h4>
+                    <p>Answers submitted against v2 assessment questions.</p>
+                </div>
+            </div>
+
+            <div className="test-case-result-list">
+                {entries.map(([questionId, value]) => (
+                    <div className="test-case-result-card" key={questionId}>
+                        <div className="test-case-result-header">
+                            <strong>{resolveQuestionTitle(assignment, questionId)}</strong>
+                        </div>
+                        <p className="muted-cell">{resolveSubmittedValue(assignment, questionId, value)}</p>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function resolveQuestionTitle(assignment, questionId) {
+    const question = (assignment.sections || [])
+        .flatMap((section) => section.questions || [])
+        .find((item) => item.id === questionId);
+
+    return question?.title || questionId;
+}
+
+function resolveSubmittedValue(assignment, questionId, value) {
+    if (value === null || value === undefined || value === "") {
+        return "";
+    }
+
+    const question = (assignment.sections || [])
+        .flatMap((section) => section.questions || [])
+        .find((item) => item.id === questionId);
+
+    if (question?.type !== "MULTIPLE_CHOICE") {
+        return value;
+    }
+
+    const option = (question.options || []).find((item) => item.id === value);
+    return option?.text || value;
+}
+
+function formatQuestionType(type) {
+    if (type === "MULTIPLE_CHOICE") {
+        return "MCQ";
+    }
+
+    if (type === "SHORT_ANSWER") {
+        return "Short answer";
+    }
+
+    if (type === "CODING_CHALLENGE") {
+        return "Coding";
+    }
+
+    return type || "Question";
 }
 
 function TestCasesTab({ assignment, testCases, testCaseResults }) {
@@ -309,75 +560,66 @@ function GradingTab({
     onGradeChange,
     onGradeAssignment,
 }) {
+    const gradeForm = gradeForms[assignment.id] || {};
+    const questionReviews = Array.isArray(gradeForm.questionReviews)
+        ? gradeForm.questionReviews
+        : buildManualReviewItems(assignment, assignment.questionReviews || []);
+    const autoScore = getAutoScoredPoints(assignment);
+    const finalScore = calculateReviewScore(questionReviews);
+    const isSaving = gradingAssignmentId === assignment.id;
+    const isDisabled = isSaving || Boolean(gradingAssignmentId);
+
+    const updateQuestionReview = (questionId, field, value) => {
+        const nextReviews = questionReviews.map((review) => {
+            if (review.questionId !== questionId) {
+                return review;
+            }
+
+            if (field === "awardedPoints") {
+                const parsedValue = value === "" ? 0 : Number(value);
+                const boundedValue = Math.min(
+                    Math.max(Number.isNaN(parsedValue) ? 0 : parsedValue, 0),
+                    Number(review.maxPoints || 0)
+                );
+
+                return {
+                    ...review,
+                    awardedPoints: boundedValue,
+                    reviewed: true,
+                };
+            }
+
+            return {
+                ...review,
+                [field]: value,
+                reviewed: true,
+            };
+        });
+
+        onGradeChange(assignment.id, "questionReviews", nextReviews);
+    };
+
     return (
         <>
-            {assignment.status === "SUBMITTED" && (
+            {(assignment.status === "SUBMITTED" || assignment.status === "GRADED") && (
                 <div className="grade-box detail-grade-box compact-grade-box">
-                    <h4>Manual Grade</h4>
-
-                    <div className="two-column-form">
-                        <div>
-                            <label>Score</label>
-                            <input
-                                type="number"
-                                min="0"
-                                value={gradeForms[assignment.id]?.score || ""}
-                                onChange={(event) =>
-                                    onGradeChange(
-                                        assignment.id,
-                                        "score",
-                                        event.target.value
-                                    )
-                                }
-                                placeholder="Enter score"
-                            />
-                        </div>
-
-                        <div>
-                            <label>Feedback</label>
-                            <textarea
-                                rows="3"
-                                value={gradeForms[assignment.id]?.feedback || ""}
-                                onChange={(event) =>
-                                    onGradeChange(
-                                        assignment.id,
-                                        "feedback",
-                                        event.target.value
-                                    )
-                                }
-                                placeholder="Write feedback"
-                            />
-                        </div>
-                    </div>
+                    <ManualGradeComposer
+                        assignment={assignment}
+                        autoScore={autoScore}
+                        finalScore={finalScore}
+                        gradeForm={gradeForm}
+                        questionReviews={questionReviews}
+                        onGradeChange={onGradeChange}
+                        onQuestionReviewChange={updateQuestionReview}
+                    />
 
                     <button
                         className="primary-button"
                         onClick={() => onGradeAssignment(assignment.id)}
-                        disabled={
-                            gradingAssignmentId === assignment.id ||
-                            Boolean(gradingAssignmentId)
-                        }
+                        disabled={isDisabled}
                     >
-                        {gradingAssignmentId === assignment.id
-                            ? "Saving Grade..."
-                            : "Save Grade"}
+                        {isSaving ? "Saving Grade..." : "Save Grade"}
                     </button>
-                </div>
-            )}
-
-            {assignment.status === "GRADED" && (
-                <div className="graded-box">
-                    <h4>Saved Grade</h4>
-                    <p>
-                        <strong>Score:</strong>{" "}
-                        {assignment.score !== null && assignment.score !== undefined
-                            ? `${assignment.score}/${assignment.maxScore || 100}`
-                            : "Not available"}
-                    </p>
-                    <p>
-                        <strong>Feedback:</strong>{" "}
-                        {assignment.feedback || "No feedback provided"}
-                    </p>
                 </div>
             )}
 
@@ -387,6 +629,149 @@ function GradingTab({
                 </div>
             )}
         </>
+    );
+}
+
+function ManualGradeComposer({
+    assignment,
+    autoScore,
+    finalScore,
+    gradeForm,
+    questionReviews,
+    onGradeChange,
+    onQuestionReviewChange,
+}) {
+    const maxScore = assignment.maxScore || 100;
+
+    return (
+        <div className="manual-review-workflow">
+            <div className="reviewer-section-header">
+                <div>
+                    <h4>Recruiter Score Review</h4>
+                    <p>Review auto-scored marks, candidate answers, and adjust final scoring before saving.</p>
+                </div>
+            </div>
+
+            <div className="score-breakdown-grid manual-score-grid">
+                <ScoreBreakdownItem label="Auto-scored" count="coding and MCQ" points={autoScore} />
+                <ScoreBreakdownItem label="Reviewed" count="all sections" points={finalScore} />
+                <ScoreBreakdownItem label="Final Score" count={`out of ${maxScore}`} points={finalScore} />
+                <ScoreBreakdownItem
+                    label="Remaining"
+                    count="unawarded"
+                    points={Math.max(Number(maxScore) - Number(finalScore), 0)}
+                />
+            </div>
+
+            <div className="manual-review-list">
+                {getAssessmentSections(assignment).map((section, sectionIndex) => (
+                    <section className="manual-review-section" key={section.id || sectionIndex}>
+                        <div className="manual-review-section-header">
+                            <h5>{section.title || `Section ${sectionIndex + 1}`}</h5>
+                            {section.description && <p>{section.description}</p>}
+                        </div>
+
+                        {(section.questions || []).map((question, questionIndex) => {
+                            const review = questionReviews.find((item) => item.questionId === question.id) || {};
+                            const submittedValue = resolveSubmittedValue(
+                                assignment,
+                                question.id,
+                                assignment.submittedAnswers?.[question.id]
+                            );
+
+                            return (
+                                <div className="manual-review-card" key={question.id || questionIndex}>
+                                    <div className="manual-review-question">
+                                        <div>
+                                            <strong>{question.title || `Question ${questionIndex + 1}`}</strong>
+                                            <small>{formatQuestionType(question.type)}</small>
+                                            <p>{question.prompt}</p>
+                                        </div>
+                                        <span>{question.points || 0} pts</span>
+                                    </div>
+
+                                    <div className="manual-review-answer">
+                                        <span>Candidate answer</span>
+                                        <p>{submittedValue || (question.type === "CODING_CHALLENGE" ? "See submitted code and test results." : "No answer submitted")}</p>
+                                    </div>
+
+                                    {question.correctAnswer && (
+                                        <div className="manual-review-answer guidance">
+                                            <span>Reviewer guidance</span>
+                                            <p>{question.correctAnswer}</p>
+                                        </div>
+                                    )}
+
+                                    <div className="two-column-form manual-review-inputs">
+                                        <div>
+                                            <label>Awarded points</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max={review.maxPoints || question.points || 0}
+                                                value={review.awardedPoints ?? 0}
+                                                onChange={(event) =>
+                                                    onQuestionReviewChange(
+                                                        question.id,
+                                                        "awardedPoints",
+                                                        event.target.value
+                                                    )
+                                                }
+                                            />
+                                            <small className="muted-cell">
+                                                Auto score: {review.autoAwardedPoints ?? 0}/{review.maxPoints || question.points || 0}
+                                            </small>
+                                        </div>
+
+                                        <div>
+                                            <label>Reviewer notes</label>
+                                            <textarea
+                                                rows="3"
+                                                value={review.notes || ""}
+                                                onChange={(event) =>
+                                                    onQuestionReviewChange(
+                                                        question.id,
+                                                        "notes",
+                                                        event.target.value
+                                                    )
+                                                }
+                                                placeholder="Internal notes for this answer"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </section>
+                ))}
+            </div>
+
+            <FeedbackField
+                assignment={assignment}
+                gradeForm={gradeForm}
+                onGradeChange={onGradeChange}
+            />
+        </div>
+    );
+}
+
+function FeedbackField({ assignment, gradeForm, onGradeChange }) {
+    return (
+        <div>
+            <label>Candidate feedback</label>
+            <textarea
+                rows="3"
+                value={gradeForm.feedback ?? assignment.feedback ?? ""}
+                onChange={(event) =>
+                    onGradeChange(
+                        assignment.id,
+                        "feedback",
+                        event.target.value
+                    )
+                }
+                placeholder="Write candidate-facing feedback"
+            />
+        </div>
     );
 }
 
@@ -451,38 +836,18 @@ function ReviewMetric({ label, value, hint }) {
     );
 }
 
-function getReviewFlags(assignment) {
-    const flags = [];
+function ScoreBreakdownItem({ label, count, points }) {
+    const countLabel = typeof count === "number"
+        ? `${count} ${count === 1 ? "item" : "items"}`
+        : count;
 
-    if (assignment.autoSubmitted) {
-        flags.push({ type: "auto", label: "Submitted automatically when time ended" });
-    }
-
-    if (isAssignmentOverdue(assignment)) {
-        flags.push({ type: "overdue", label: "Due date has passed" });
-    }
-
-    if (isAssignmentExpired(assignment)) {
-        flags.push({ type: "expired", label: "Time limit expired" });
-    }
-
-    if (assignment.timeLimitMinutes) {
-        flags.push({ type: "timed", label: `${assignment.timeLimitMinutes}-minute assessment` });
-    }
-
-    return flags;
-}
-
-function isAssignmentOverdue(assignment) {
-    return assignment.status === "ASSIGNED" &&
-        Boolean(assignment.dueAt) &&
-        new Date(assignment.dueAt).getTime() < Date.now();
-}
-
-function isAssignmentExpired(assignment) {
-    return assignment.status === "ASSIGNED" &&
-        Boolean(assignment.expiresAt) &&
-        new Date(assignment.expiresAt).getTime() < Date.now();
+    return (
+        <div className="score-breakdown-item">
+            <span>{label}</span>
+            <strong>{points} pts</strong>
+            <small>{countLabel}</small>
+        </div>
+    );
 }
 
 export default AssignmentDetailsPanel;

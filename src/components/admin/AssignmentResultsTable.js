@@ -2,7 +2,12 @@ import EmptyTableRow from "../common/EmptyTableRow";
 import Pagination from "../common/Pagination";
 import SectionHeader from "../common/SectionHeader";
 import StatusBadge from "../common/StatusBadge";
-import { formatDate, formatLanguage } from "../../utils/formatters";
+import {
+    getHiringSignal,
+    getReviewFlags,
+    getScorePercent,
+} from "../../features/results/resultReviewUtils";
+import { formatAssessmentType, formatDate, formatLanguage } from "../../utils/formatters";
 
 function AssignmentResultsTable({
     assignments,
@@ -83,9 +88,11 @@ function AssignmentResultsTable({
                 <table className="data-table results-table">
                     <thead>
                         <tr>
+                            <th>Rank</th>
                             <th>Candidate</th>
                             <th>Assessment</th>
                             <th>Language</th>
+                            <th>Signal</th>
                             <th>Status</th>
                             <th>Execution</th>
                             <th>Tests</th>
@@ -97,7 +104,7 @@ function AssignmentResultsTable({
                     </thead>
 
                     <tbody>
-                        {assignments.map((assignment) => {
+                        {assignments.map((assignment, index) => {
                             const testCaseResults = Array.isArray(
                                 assignment.testCaseResults
                             )
@@ -114,9 +121,16 @@ function AssignmentResultsTable({
                                     ? assignment.testCases.length
                                     : 0);
                             const reviewFlags = getReviewFlags(assignment);
+                            const scorePercent = getScorePercent(assignment);
+                            const signal = getHiringSignal(assignment);
+                            const rank = (page - 1) * pageSize + index + 1;
 
                             return (
                                 <tr key={assignment.id}>
+                                    <td data-label="Rank">
+                                        <span className="rank-pill">#{rank}</span>
+                                    </td>
+
                                     <td data-label="Candidate">
                                         <div className="primary-cell">
                                             {assignment.candidateName}
@@ -131,12 +145,18 @@ function AssignmentResultsTable({
                                             {assignment.assessmentTitle}
                                         </div>
                                         <div className="muted-cell">
-                                            {assignment.assessmentType}
+                                            {formatAssessmentType(assignment.assessmentType)}
                                         </div>
                                     </td>
 
                                     <td data-label="Language">
                                         {formatLanguage(assignment.language)}
+                                    </td>
+
+                                    <td data-label="Signal">
+                                        <span className={`hiring-signal hiring-signal-${signal.type}`}>
+                                            {signal.label}
+                                        </span>
                                     </td>
 
                                     <td data-label="Status">
@@ -186,9 +206,14 @@ function AssignmentResultsTable({
 
                                     <td data-label="Score">
                                         {assignment.score !== null &&
-                                            assignment.score !== undefined
-                                            ? `${assignment.score}/${assignment.maxScore || 100}`
-                                            : "-"}
+                                            assignment.score !== undefined ? (
+                                            <div className="score-cell">
+                                                <strong>{assignment.score}/{assignment.maxScore || 100}</strong>
+                                                <span>{scorePercent}%</span>
+                                            </div>
+                                        ) : (
+                                            "-"
+                                        )}
                                     </td>
 
                                     <td data-label="Due">
@@ -244,7 +269,7 @@ function AssignmentResultsTable({
 
                         {assignments.length === 0 && (
                             <EmptyTableRow
-                                colSpan={10}
+                                colSpan={12}
                                 message="No assignment results found."
                             />
                         )}
@@ -260,40 +285,6 @@ function AssignmentResultsTable({
             />
         </section>
     );
-}
-
-function getReviewFlags(assignment) {
-    const flags = [];
-
-    if (assignment.autoSubmitted) {
-        flags.push({ type: "auto", label: "Auto-submitted" });
-    }
-
-    if (isAssignmentOverdue(assignment)) {
-        flags.push({ type: "overdue", label: "Overdue" });
-    }
-
-    if (isAssignmentExpired(assignment)) {
-        flags.push({ type: "expired", label: "Expired" });
-    }
-
-    if (assignment.timeLimitMinutes) {
-        flags.push({ type: "timed", label: `${assignment.timeLimitMinutes} min` });
-    }
-
-    return flags;
-}
-
-function isAssignmentOverdue(assignment) {
-    return assignment.status === "ASSIGNED" &&
-        Boolean(assignment.dueAt) &&
-        new Date(assignment.dueAt).getTime() < Date.now();
-}
-
-function isAssignmentExpired(assignment) {
-    return assignment.status === "ASSIGNED" &&
-        Boolean(assignment.expiresAt) &&
-        new Date(assignment.expiresAt).getTime() < Date.now();
 }
 
 export default AssignmentResultsTable;

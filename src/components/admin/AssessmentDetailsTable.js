@@ -37,7 +37,7 @@ function AssessmentDetailsTable({
                 >
                     <option value="ALL">All types</option>
                     <option value="CODING_CHALLENGE">Coding Challenge</option>
-                    <option value="QUIZ">Quiz</option>
+                    <option value="MCQ">MCQ / Short Answer</option>
                 </select>
 
                 <select
@@ -58,8 +58,10 @@ function AssessmentDetailsTable({
                         <tr>
                             <th>Title</th>
                             <th>Type</th>
+                            <th>Status</th>
                             <th>Language</th>
                             <th>Max Score</th>
+                            <th>Questions</th>
                             <th>Test Cases</th>
                             <th>Description</th>
                         </tr>
@@ -100,11 +102,19 @@ function AssessmentDetailsTable({
                                         <StatusBadge value={assessment.type} />
                                     </td>
 
+                                    <td data-label="Status">
+                                        <StatusBadge value={assessment.status || "PUBLISHED"} />
+                                    </td>
+
                                     <td data-label="Language">
                                         {formatLanguage(assessment.language)}
                                     </td>
 
                                     <td data-label="Max Score">{assessment.maxScore}</td>
+
+                                    <td data-label="Questions">
+                                        {getQuestionCount(assessment)} total
+                                    </td>
 
                                     <td data-label="Test Cases">
                                         {assessment.type === "CODING_CHALLENGE" ? (
@@ -130,7 +140,7 @@ function AssessmentDetailsTable({
                         })}
 
                         {assessments.length === 0 && (
-                            <EmptyTableRow colSpan={6} message="No assessments found." />
+                            <EmptyTableRow colSpan={8} message="No assessments found." />
                         )}
                     </tbody>
                 </table>
@@ -143,6 +153,13 @@ function AssessmentDetailsTable({
                 onPageChange={onPageChange}
             />
         </section>
+    );
+}
+
+function getQuestionCount(assessment) {
+    return (assessment.sections || []).reduce(
+        (total, section) => total + (section.questions || []).length,
+        0
     );
 }
 

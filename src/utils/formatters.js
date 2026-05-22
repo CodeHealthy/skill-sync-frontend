@@ -39,8 +39,8 @@ export function formatAssessmentType(type) {
         return "Coding Challenge";
     }
 
-    if (type === "QUIZ") {
-        return "Quiz";
+    if (type === "MCQ" || type === "QUIZ") {
+        return "MCQ / Short Answer";
     }
 
     return type;

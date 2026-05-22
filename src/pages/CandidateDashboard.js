@@ -198,8 +198,11 @@ function CandidateDashboard() {
         const isCodingChallenge = assignment.assessmentType === "CODING_CHALLENGE";
 
         const payload = isCodingChallenge
-            ? { submittedCode: codes[assignment.id] }
-            : { submittedAnswer: answers[assignment.id] };
+            ? {
+                submittedCode: codes[assignment.id],
+                submittedAnswers: answers[assignment.id] || {},
+            }
+            : { submittedAnswers: answers[assignment.id] || {} };
 
         if (isAutoSubmit) {
             payload.autoSubmitted = true;
@@ -214,7 +217,12 @@ function CandidateDashboard() {
             return;
         }
 
-        if (!isCodingChallenge && (!payload.submittedAnswer || !payload.submittedAnswer.trim())) {
+        if (
+            !isCodingChallenge &&
+            Object.values(payload.submittedAnswers || {}).every(
+                (value) => !value || !String(value).trim()
+            )
+        ) {
             showWarning(
                 isAutoSubmit
                     ? "Time expired, but no answer was available to submit."
@@ -342,7 +350,7 @@ function CandidateDashboard() {
                     languageFilter={languageFilter}
                     organizations={organizations}
                     code={codes[selectedAssignment?.id] || ""}
-                    answer={answers[selectedAssignment?.id] || ""}
+                    answer={answers[selectedAssignment?.id] || {}}
                     submittingAssignmentId={submittingAssignmentId}
                     runningAssignmentId={runningAssignmentId}
                     startingAssignmentId={startingAssignmentId}

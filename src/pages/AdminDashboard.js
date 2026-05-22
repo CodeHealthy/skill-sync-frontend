@@ -8,61 +8,28 @@ import ManageCandidatesPanel from "../components/admin/ManageCandidatesPanel";
 import CreateAssessmentPanel from "../components/admin/CreateAssessmentPanel";
 import ViewResultsPanel from "../components/admin/ViewResultsPanel";
 import AdminProfilePanel from "../components/admin/AdminProfilePanel";
+import BillingSettingsPanel from "../components/admin/BillingSettingsPanel";
 import AiAssessmentGeneratorModal from "../components/admin/AiAssessmentGeneratorModal";
 import ConfirmModal from "../components/common/ConfirmModal";
+import UsageLimitBanner from "../components/billing/UsageLimitBanner";
+import { useSubscription } from "../hooks/useSubscription";
 import { ADMIN_PAGE_SIZE } from "../constants/pagination";
-import { getDefaultStarterCode } from "../constants/starterCode";
+import { PLAN_FEATURES } from "../constants/plans";
+import {
+    ASSESSMENT_QUESTION_TYPES,
+    ASSESSMENT_TYPES,
+    createDefaultTestCase,
+    createInitialAssessmentForm,
+    getAssessmentMaxScore,
+    getPrimaryQuestion,
+    normalizeSectionsForSubmit,
+    normalizeTestCasesForSubmit,
+} from "../features/assessments/assessmentFormUtils";
+import { normalizeAiDraftForBuilder } from "../features/assessments/aiDraftUtils";
+import { buildGradePayload } from "../features/results/manualReviewUtils";
 import { getApiErrorMessage } from "../utils/errorUtils";
 import { paginate } from "../utils/paginationUtils";
 import { showError, showSuccess } from "../utils/toastUtils";
-
-// ====================================================
-// HELPER FUNCTIONS
-// ====================================================
-
-const createDefaultTestCase = (index = 1, maxScore = 100) => ({
-    name: index === 1 ? "Sample case" : `Test case ${index}`,
-    input: "",
-    expectedOutput: "",
-    hidden: index !== 1,
-    points: index === 1 ? maxScore : 0,
-});
-
-const createInitialAssessmentForm = () => ({
-    title: "",
-    description: "",
-    type: "CODING_CHALLENGE",
-    language: "JAVA",
-    maxScore: 100,
-    prompt: "",
-    starterCode: getDefaultStarterCode("JAVA"),
-    expectedOutput: "Hello SkillSync",
-    testCases: [
-        {
-            name: "Sample case",
-            input: "",
-            expectedOutput: "Hello SkillSync",
-            hidden: false,
-            points: 100,
-        },
-    ],
-});
-
-const normalizeTestCasesForSubmit = (testCases) => {
-    return (testCases || [])
-        .filter((testCase) => testCase?.expectedOutput?.trim())
-        .map((testCase, index) => ({
-            name: testCase.name?.trim() || `Test case ${index + 1}`,
-            input: testCase.input || "",
-            expectedOutput: testCase.expectedOutput.trim(),
-            hidden: Boolean(testCase.hidden),
-            points: Number(testCase.points || 0),
-        }));
-};
-
-// ====================================================
-// ADMIN DASHBOARD COMPONENT
-// ====================================================
 
 function AdminDashboard() {
     const { user } = useAuth();
@@ -182,6 +149,26 @@ function AdminDashboard() {
         };
     }, [candidates, assessments, assignments]);
 
+    const subscriptionFallbackUsage = useMemo(
+        () => ({
+            [PLAN_FEATURES.ACTIVE_ASSESSMENTS]: assessments.length,
+            [PLAN_FEATURES.CANDIDATE_INVITES]: candidates.length,
+        }),
+        [assessments.length, candidates.length]
+    );
+
+    const {
+        subscription,
+        plan,
+        assessmentUsage,
+        inviteUsage,
+        canCreateAssessment,
+        canInviteCandidate,
+        canUseAiGeneration,
+        loading: loadingSubscription,
+        refreshSubscription,
+    } = useSubscription(subscriptionFallbackUsage);
+
     // ---- Filter & Paginate ----
 
     const filteredCandidates = useMemo(() => {
@@ -215,7 +202,8 @@ function AdminDashboard() {
 
             const matchesType =
                 assessmentTypeFilter === "ALL" ||
-                assessment.type === assessmentTypeFilter;
+                assessment.type === assessmentTypeFilter ||
+                (assessmentTypeFilter === "MCQ" && assessment.type === "QUIZ");
 
             const matchesLanguage =
                 assessmentLanguageFilter === "ALL" ||
@@ -277,6 +265,11 @@ function AdminDashboard() {
     const handleCreateCandidate = async (event) => {
         event.preventDefault();
 
+        if (!canInviteCandidate) {
+            showError("Your current plan has reached its monthly candidate invite limit.");
+            return;
+        }
+
         if (!candidateForm.name.trim() || !candidateForm.email.trim()) {
             showError("Please provide both name and email.");
             return;
@@ -306,6 +299,19 @@ function AdminDashboard() {
             ...current,
             [name]: value,
         }));
+    };
+
+    const handleAssessmentPatch = (patch) => {
+        setAssessmentForm((current) => {
+            if (typeof patch === "function") {
+                return patch(current);
+            }
+
+            return {
+                ...current,
+                ...patch,
+            };
+        });
     };
 
     const handleAssessmentTestCaseChange = (index, field, value) => {
@@ -342,35 +348,59 @@ function AdminDashboard() {
     const handleCreateAssessment = async (event) => {
         event.preventDefault();
 
+        if (!canCreateAssessment) {
+            showError("Your current plan has reached its active assessment limit.");
+            return;
+        }
+
         if (!assessmentForm.title.trim()) {
             showError("Please provide an assessment title.");
             return;
         }
 
-        if (!assessmentForm.prompt.trim()) {
+        const primaryQuestion = getPrimaryQuestion(assessmentForm.sections);
+
+        if (!primaryQuestion || !primaryQuestion.prompt?.trim()) {
             showError("Please provide an assessment prompt.");
             return;
         }
 
-        if (assessmentForm.type === "CODING_CHALLENGE" && assessmentForm.testCases.length === 0) {
-            showError("Please add at least one test case for coding challenges.");
+        if (
+            primaryQuestion.type === ASSESSMENT_QUESTION_TYPES.CODING_CHALLENGE &&
+            (!primaryQuestion.testCases || primaryQuestion.testCases.length === 0)
+        ) {
+            showError("Please add at least one test case for coding questions.");
             return;
         }
 
         setCreatingAssessment(true);
 
         try {
-            const normalizedTestCases = normalizeTestCasesForSubmit(assessmentForm.testCases);
+            const normalizedSections = normalizeSectionsForSubmit(assessmentForm.sections);
+            const normalizedTestCases = primaryQuestion.type === ASSESSMENT_QUESTION_TYPES.CODING_CHALLENGE
+                ? normalizeTestCasesForSubmit(primaryQuestion.testCases)
+                : [];
 
             await assessmentApi.createAssessment({
                 title: assessmentForm.title,
                 description: assessmentForm.description,
-                type: assessmentForm.type,
-                language: assessmentForm.language,
-                maxScore: Number(assessmentForm.maxScore),
-                prompt: assessmentForm.prompt,
-                starterCode: assessmentForm.starterCode,
+                roleTitle: assessmentForm.roleTitle,
+                status: assessmentForm.status,
+                durationMinutes: assessmentForm.durationMinutes
+                    ? Number(assessmentForm.durationMinutes)
+                    : null,
+                type: primaryQuestion.type === ASSESSMENT_QUESTION_TYPES.CODING_CHALLENGE
+                    ? ASSESSMENT_TYPES.CODING_CHALLENGE
+                    : ASSESSMENT_TYPES.MCQ,
+                language: primaryQuestion.type === ASSESSMENT_QUESTION_TYPES.CODING_CHALLENGE
+                    ? primaryQuestion.language
+                    : "TEXT",
+                maxScore: getAssessmentMaxScore(normalizedSections, assessmentForm.maxScore),
+                prompt: primaryQuestion.prompt,
+                starterCode: primaryQuestion.starterCode || "",
+                expectedOutput: primaryQuestion.expectedOutput || "",
                 testCases: normalizedTestCases,
+                sections: normalizedSections,
             });
 
             showSuccess("Assessment created successfully.");
@@ -386,9 +416,12 @@ function AdminDashboard() {
     };
 
     const handleAiAssessmentGenerated = (draft) => {
-        setAssessmentForm(draft);
+        setAssessmentForm({
+            ...createInitialAssessmentForm(),
+            ...normalizeAiDraftForBuilder(draft, assessmentForm),
+        });
         setAssessmentWizardOpen(true);
-        setAssessmentWizardStep(0);
+        setAssessmentWizardStep(1);
     };
 
     const handleAssignChange = (event) => {
@@ -489,8 +522,15 @@ function AdminDashboard() {
 
     const handleGradeAssignment = async (assignmentId) => {
         const gradeForm = gradeForms[assignmentId];
+        const assignment = assignments.find((item) => item.id === assignmentId);
 
-        if (!gradeForm?.score || gradeForm.score === "") {
+        if (!assignment) {
+            showError("Assignment not found.");
+            return;
+        }
+
+        const gradePayload = buildGradePayload(assignment, gradeForm);
+        if (Number.isNaN(gradePayload.score)) {
             showError("Please enter a score.");
             return;
         }
@@ -498,15 +538,12 @@ function AdminDashboard() {
         setGradingAssignmentId(assignmentId);
 
         try {
-            await assessmentApi.gradeAssignment(assignmentId, {
-                score: Number(gradeForm.score),
-                feedback: gradeForm.feedback || "",
-            });
+            await assessmentApi.gradeAssignment(assignmentId, gradePayload);
 
             showSuccess("Grade saved successfully.");
             setGradeForms((current) => ({
                 ...current,
-                [assignmentId]: { score: "", feedback: "" },
+                [assignmentId]: { score: "", feedback: "", questionReviews: [] },
             }));
             setConfirmAction(null);
             await fetchDashboardData();
@@ -581,14 +618,26 @@ function AdminDashboard() {
             label: "Overview",
             icon: "overview",
             content: (
-                <AdminOverviewPanel
-                    stats={dashboardStats}
-                    loadingDashboard={loadingDashboard}
-                    onRefresh={fetchDashboardData}
-                    assignments={assignments}
-                    assessments={assessments}
-                    candidates={candidates}
-                />
+                <div className="dashboard-panel-stack">
+                    <div className="dashboard-panel-grid dashboard-panel-grid-equal">
+                        <UsageLimitBanner
+                            label="Active assessments"
+                            usage={assessmentUsage}
+                        />
+                        <UsageLimitBanner
+                            label="Candidate invites this month"
+                            usage={inviteUsage}
+                        />
+                    </div>
+                    <AdminOverviewPanel
+                        stats={dashboardStats}
+                        loadingDashboard={loadingDashboard}
+                        onRefresh={fetchDashboardData}
+                        assignments={assignments}
+                        assessments={assessments}
+                        candidates={candidates}
+                    />
+                </div>
             ),
         },
         {
@@ -608,6 +657,7 @@ function AdminDashboard() {
                     onPageChange={setCandidatePage}
                     candidateForm={candidateForm}
                     creatingCandidate={creatingCandidate}
+                    canInviteCandidate={canInviteCandidate}
                     onCandidateChange={handleCandidateChange}
                     onCreateCandidate={handleCreateCandidate}
                 />
@@ -621,6 +671,8 @@ function AdminDashboard() {
                 <CreateAssessmentPanel
                     assessmentForm={assessmentForm}
                     creatingAssessment={creatingAssessment}
+                    canCreateAssessment={canCreateAssessment}
+                    canUseAiGeneration={canUseAiGeneration}
                     wizardOpen={assessmentWizardOpen}
                     wizardStep={assessmentWizardStep}
                     assignForm={assignForm}
@@ -642,6 +694,7 @@ function AdminDashboard() {
                     onWizardStepChange={setAssessmentWizardStep}
                     onGenerateWithAi={() => setAiModalOpen(true)}
                     onAssessmentChange={handleAssessmentChange}
+                    onAssessmentPatch={handleAssessmentPatch}
                     onAssessmentTestCaseChange={handleAssessmentTestCaseChange}
                     onAddAssessmentTestCase={handleAddAssessmentTestCase}
                     onRemoveAssessmentTestCase={handleRemoveAssessmentTestCase}
@@ -679,6 +732,21 @@ function AdminDashboard() {
                     gradingAssignmentId={gradingAssignmentId}
                     onGradeChange={handleGradeChange}
                     onGradeAssignment={requestGradeAssignment}
+                />
+            ),
+        },
+        {
+            id: "billing",
+            label: "Billing",
+            icon: "billing",
+            content: (
+                <BillingSettingsPanel
+                    plan={plan}
+                    subscription={subscription}
+                    assessmentUsage={assessmentUsage}
+                    inviteUsage={inviteUsage}
+                    loading={loadingSubscription}
+                    onRefresh={refreshSubscription}
                 />
             ),
         },

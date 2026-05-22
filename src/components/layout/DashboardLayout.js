@@ -47,6 +47,13 @@ const iconPaths = {
             <path d="M4 20a8 8 0 0 1 16 0" />
         </>
     ),
+    billing: (
+        <>
+            <path d="M4 7h16v10H4V7Z" />
+            <path d="M4 10h16" />
+            <path d="M8 15h4" />
+        </>
+    ),
 };
 
 function DashboardIcon({ name, className }) {

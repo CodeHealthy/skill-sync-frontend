@@ -8,4 +8,8 @@ export const candidateApi = {
     createCandidate: (payload) => {
         return axiosClient.post("/candidates", payload);
     },
+
+    inviteCandidate: (payload) => {
+        return axiosClient.post("/candidates", payload);
+    },
 };

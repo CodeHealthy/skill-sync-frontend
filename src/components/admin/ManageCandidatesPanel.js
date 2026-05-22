@@ -14,6 +14,7 @@ function ManageCandidatesPanel({
     onPageChange,
     candidateForm,
     creatingCandidate,
+    canInviteCandidate,
     onCandidateChange,
     onCreateCandidate,
 }) {
@@ -22,6 +23,7 @@ function ManageCandidatesPanel({
             <CandidateInviteForm
                 candidateForm={candidateForm}
                 creatingCandidate={creatingCandidate}
+                canInviteCandidate={canInviteCandidate}
                 onCandidateChange={onCandidateChange}
                 onCreateCandidate={onCreateCandidate}
             />

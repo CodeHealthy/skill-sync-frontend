@@ -11,10 +11,12 @@ import RoleRoute from "./auth/RoleRoute";
 import Navbar from "./components/layout/Navbar";
 
 import HomePage from "./pages/HomePage";
+import PricingPage from "./pages/PricingPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import CandidateDashboard from "./pages/CandidateDashboard";
+import CandidateAssessmentSessionPage from "./pages/CandidateAssessmentSessionPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -32,6 +34,7 @@ function App() {
 
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/pricing" element={<PricingPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -47,6 +50,7 @@ function App() {
 
             <Route element={<RoleRoute allowedRoles={["CANDIDATE"]} />}>
               <Route path="/candidate" element={<CandidateDashboard />} />
+              <Route path="/candidate/assessments/:assignmentId" element={<CandidateAssessmentSessionPage />} />
             </Route>
           </Route>
 

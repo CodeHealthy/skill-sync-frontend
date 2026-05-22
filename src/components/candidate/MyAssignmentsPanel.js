@@ -1,6 +1,8 @@
-import AssignmentDetail from "./AssignmentDetail";
+import { Link } from "react-router-dom";
 import AssignmentList from "./AssignmentList";
 import CandidateFilters from "./CandidateFilters";
+import DetailItem from "../common/DetailItem";
+import { formatAssessmentType, formatDate, formatLanguage } from "../../utils/formatters";
 import "../../css/DashboardPanels.css";
 
 function MyAssignmentsPanel({
@@ -17,12 +19,6 @@ function MyAssignmentsPanel({
     executionFilter,
     languageFilter,
     organizations,
-    code,
-    answer,
-    submittingAssignmentId,
-    runningAssignmentId,
-    startingAssignmentId,
-    runResult,
     onPageChange,
     onSelectAssignment,
     onSearchTermChange,
@@ -31,11 +27,6 @@ function MyAssignmentsPanel({
     onExecutionFilterChange,
     onLanguageFilterChange,
     onRefresh,
-    onCodeChange,
-    onAnswerChange,
-    onRunCode,
-    onStartAssignment,
-    onSubmit,
 }) {
     return (
         <div className="candidate-dashboard-panel">
@@ -87,20 +78,7 @@ function MyAssignmentsPanel({
 
             <section className="list-card assessment-detail-card">
                 {selectedAssignment ? (
-                    <AssignmentDetail
-                        assignment={selectedAssignment}
-                        code={code}
-                        answer={answer}
-                        submittingAssignmentId={submittingAssignmentId}
-                        runningAssignmentId={runningAssignmentId}
-                        startingAssignmentId={startingAssignmentId}
-                        runResult={runResult}
-                        onCodeChange={onCodeChange}
-                        onAnswerChange={onAnswerChange}
-                        onRunCode={onRunCode}
-                        onStartAssignment={onStartAssignment}
-                        onSubmit={onSubmit}
-                    />
+                    <AssignmentLaunchCard assignment={selectedAssignment} />
                 ) : (
                     <div className="empty-state">
                         <h3>Select an assessment</h3>
@@ -108,6 +86,54 @@ function MyAssignmentsPanel({
                     </div>
                 )}
             </section>
+        </div>
+    );
+}
+
+function AssignmentLaunchCard({ assignment }) {
+    const sections = Array.isArray(assignment.sections) ? assignment.sections : [];
+    const questions = sections.flatMap((section) => section.questions || []);
+    const canOpen = assignment.status === "ASSIGNED";
+
+    return (
+        <div className="candidate-launch-card">
+            <div className="candidate-launch-header">
+                <div>
+                    <p className="eyebrow">{assignment.organizationName || "Organization"}</p>
+                    <h2>{assignment.assessmentTitle}</h2>
+                    <p>{assignment.prompt}</p>
+                </div>
+            </div>
+
+            <div className="detail-grid">
+                <DetailItem label="Type" value={formatAssessmentType(assignment.assessmentType)} />
+                <DetailItem label="Language" value={formatLanguage(assignment.language)} />
+                <DetailItem label="Sections" value={sections.length || 1} />
+                <DetailItem label="Questions" value={questions.length || 1} />
+                <DetailItem label="Due At" value={formatDate(assignment.dueAt)} />
+                <DetailItem
+                    label="Time Limit"
+                    value={assignment.timeLimitMinutes ? `${assignment.timeLimitMinutes} minutes` : "No limit"}
+                />
+            </div>
+
+            <div className="candidate-launch-actions">
+                {canOpen ? (
+                    <Link
+                        className="primary-button"
+                        to={`/candidate/assessments/${assignment.id}`}
+                    >
+                        Open assessment workspace
+                    </Link>
+                ) : (
+                    <Link
+                        className="secondary-button"
+                        to={`/candidate/assessments/${assignment.id}`}
+                    >
+                        View submission
+                    </Link>
+                )}
+            </div>
         </div>
     );
 }
