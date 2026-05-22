@@ -18,7 +18,7 @@ export const PLAN_DEFINITIONS = [
     {
         id: PLAN_IDS.FREE,
         name: "Free",
-        priceLabel: "$0",
+        priceLabel: "0 د.إ AED",
         cadence: "forever",
         description: "For validating the core workflow with a small hiring loop.",
         stripePriceEnvKey: null,
@@ -39,7 +39,7 @@ export const PLAN_DEFINITIONS = [
     {
         id: PLAN_IDS.STARTER,
         name: "Starter",
-        priceLabel: "$49",
+        priceLabel: "20 د.إ AED",
         cadence: "per month",
         description: "For teams running repeatable screening for active roles.",
         stripePriceEnvKey: "REACT_APP_STRIPE_STARTER_PRICE_ID",
@@ -61,7 +61,7 @@ export const PLAN_DEFINITIONS = [
     {
         id: PLAN_IDS.GROWTH,
         name: "Growth",
-        priceLabel: "$149",
+        priceLabel: "50 د.إ AED",
         cadence: "per month",
         description: "For growing recruiting teams that need reports and branding.",
         stripePriceEnvKey: "REACT_APP_STRIPE_GROWTH_PRICE_ID",
@@ -84,8 +84,8 @@ export const PLAN_DEFINITIONS = [
     {
         id: PLAN_IDS.BUSINESS,
         name: "Business",
-        priceLabel: "Custom",
-        cadence: "annual",
+        priceLabel: "150 د.إ AED",
+        cadence: "per month",
         description: "For larger hiring operations with custom limits and support.",
         stripePriceEnvKey: "REACT_APP_STRIPE_BUSINESS_PRICE_ID",
         limits: {

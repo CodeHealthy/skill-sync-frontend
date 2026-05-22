@@ -79,10 +79,6 @@ function BillingSettingsPanel({
                 <div className="panel-heading-row">
                     <div>
                         <h2>Available Plans</h2>
-                        <p className="small-text">
-                            Checkout activates after Stripe price IDs and backend billing
-                            endpoints are configured.
-                        </p>
                     </div>
                 </div>
 
