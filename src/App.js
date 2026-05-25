@@ -7,6 +7,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { AuthProvider } from "./auth/AuthContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import RoleRoute from "./auth/RoleRoute";
+import { ORG_STAFF_ROLES, PLATFORM_ADMIN_ROLES } from "./utils/roleUtils";
 
 import Navbar from "./components/layout/Navbar";
 
@@ -15,6 +16,7 @@ import PricingPage from "./pages/PricingPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import AdminDashboard from "./pages/AdminDashboard";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import CandidateDashboard from "./pages/CandidateDashboard";
 import CandidateAssessmentSessionPage from "./pages/CandidateAssessmentSessionPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
@@ -23,6 +25,8 @@ import ProfilePage from "./pages/ProfilePage";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import AcceptInvitePage from "./pages/AcceptInvitePage";
+import AcceptTeamInvitePage from "./pages/AcceptTeamInvitePage";
 
 import OAuthSuccessPage from "./pages/OAuthSuccessPage";
 
@@ -36,6 +40,8 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/accept-invite" element={<AcceptInvitePage />} />
+          <Route path="/accept-team-invite" element={<AcceptTeamInvitePage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
 
@@ -44,7 +50,11 @@ function App() {
 
           <Route element={<ProtectedRoute />}>
             <Route path="/profile" element={<ProfilePage />} />
-            <Route element={<RoleRoute allowedRoles={["ADMIN"]} />}>
+            <Route element={<RoleRoute allowedRoles={PLATFORM_ADMIN_ROLES} />}>
+              <Route path="/super-admin" element={<SuperAdminDashboard />} />
+            </Route>
+
+            <Route element={<RoleRoute allowedRoles={ORG_STAFF_ROLES} />}>
               <Route path="/admin" element={<AdminDashboard />} />
             </Route>
 

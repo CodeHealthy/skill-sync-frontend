@@ -19,3 +19,7 @@ export function getApiErrorMessage(error, fallbackMessage) {
 
     return data.message || data.error || fallbackMessage;
 }
+
+export function isAuthRedirectError(error) {
+    return Boolean(error?.isAuthRedirect || error?.response?.status === 401);
+}

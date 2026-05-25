@@ -1,6 +1,10 @@
 import axiosClient from "./axiosClient";
 
 export const billingApi = {
+    getPlans: () => {
+        return axiosClient.get("/billing/plans");
+    },
+
     getSubscription: () => {
         return axiosClient.get("/billing/subscription");
     },

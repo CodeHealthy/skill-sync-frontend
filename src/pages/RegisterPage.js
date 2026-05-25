@@ -4,6 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 import { getApiErrorMessage } from "../utils/errorUtils";
 import { getPasswordChecks, isStrongPassword } from "../utils/passwordUtils";
 import { showError, showWarning } from "../utils/toastUtils";
+import { getDashboardPathForRole } from "../utils/roleUtils";
 
 function RegisterPage() {
     const { register, isAuthenticated, user } = useAuth();
@@ -14,7 +15,6 @@ function RegisterPage() {
         email: "",
         password: "",
         confirmPassword: "",
-        role: "CANDIDATE",
         organizationName: "",
     });
 
@@ -26,32 +26,16 @@ function RegisterPage() {
     );
 
     if (isAuthenticated) {
-        if (user?.role === "ADMIN") {
-            return <Navigate to="/admin" replace />;
-        }
-
-        if (user?.role === "CANDIDATE") {
-            return <Navigate to="/candidate" replace />;
-        }
-
-        return <Navigate to="/" replace />;
+        return <Navigate to={getDashboardPathForRole(user?.role)} replace />;
     }
 
     const handleChange = (event) => {
         const { name, value } = event.target;
 
-        setFormData((current) => {
-            const updated = {
-                ...current,
-                [name]: value,
-            };
-
-            if (name === "role" && value === "CANDIDATE") {
-                updated.organizationName = "";
-            }
-
-            return updated;
-        });
+        setFormData((current) => ({
+            ...current,
+            [name]: value,
+        }));
     };
 
     const validateForm = () => {
@@ -65,6 +49,11 @@ function RegisterPage() {
             return false;
         }
 
+        if (!formData.organizationName.trim()) {
+            showWarning("Organization name is required for employer registration.");
+            return false;
+        }
+
         if (!isStrongPassword(formData.password)) {
             showWarning(
                 "Password must include 10+ characters, uppercase, lowercase, number, and special character."
@@ -74,11 +63,6 @@ function RegisterPage() {
 
         if (formData.password !== formData.confirmPassword) {
             showWarning("Passwords do not match.");
-            return false;
-        }
-
-        if (formData.role === "ADMIN" && !formData.organizationName.trim()) {
-            showWarning("Organization name is required for admin registration.");
             return false;
         }
 
@@ -102,12 +86,9 @@ function RegisterPage() {
             fullName: formData.fullName.trim(),
             email: formData.email.trim().toLowerCase(),
             password: formData.password,
-            role: formData.role,
+            role: "ORG_ADMIN",
+            organizationName: formData.organizationName.trim(),
         };
-
-        if (formData.role === "ADMIN") {
-            payload.organizationName = formData.organizationName.trim();
-        }
 
         try {
             const response = await register(payload);
@@ -131,8 +112,8 @@ function RegisterPage() {
     return (
         <div className="page-container">
             <div className="form-card">
-                <h2>Register</h2>
-                <p>Create a recruiter or candidate account.</p>
+                <h2>Create Employer Account</h2>
+                <p>Set up your organization to create assessments and invite candidates.</p>
 
                 <form onSubmit={handleSubmit}>
                     <label>Full Name</label>
@@ -141,19 +122,30 @@ function RegisterPage() {
                         type="text"
                         value={formData.fullName}
                         onChange={handleChange}
-                        placeholder="Your Name"
+                        placeholder="Your full name"
                         autoComplete="name"
                         required
                     />
 
-                    <label>Email</label>
+                    <label>Work Email</label>
                     <input
                         name="email"
                         type="email"
                         value={formData.email}
                         onChange={handleChange}
-                        placeholder="Your Email Address"
+                        placeholder="you@company.com"
                         autoComplete="email"
+                        required
+                    />
+
+                    <label>Organization Name</label>
+                    <input
+                        name="organizationName"
+                        type="text"
+                        value={formData.organizationName}
+                        onChange={handleChange}
+                        placeholder="Your organization name"
+                        autoComplete="organization"
                         required
                     />
 
@@ -178,7 +170,7 @@ function RegisterPage() {
                                         : "password-check"
                                 }
                             >
-                                <span>{check.passed ? "✓" : "•"}</span>
+                                <span>{check.passed ? "OK" : "-"}</span>
                                 {check.label}
                             </div>
                         ))}
@@ -209,33 +201,12 @@ function RegisterPage() {
                         </p>
                     )}
 
-                    <label>Role</label>
-                    <select name="role" value={formData.role} onChange={handleChange}>
-                        <option value="CANDIDATE">Candidate</option>
-                        <option value="ADMIN">Admin / Recruiter</option>
-                    </select>
-
-                    {formData.role === "ADMIN" && (
-                        <>
-                            <label>Organization Name</label>
-                            <input
-                                name="organizationName"
-                                type="text"
-                                value={formData.organizationName}
-                                onChange={handleChange}
-                                placeholder="Your Organization Name"
-                                autoComplete="organization"
-                                required
-                            />
-                        </>
-                    )}
-
                     <button
                         type="submit"
                         className="primary-button"
                         disabled={submitting}
                     >
-                        {submitting ? "Creating account..." : "Create Account"}
+                        {submitting ? "Creating account..." : "Create Employer Account"}
                     </button>
                 </form>
 

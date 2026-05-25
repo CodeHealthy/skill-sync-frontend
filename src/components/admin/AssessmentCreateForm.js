@@ -201,7 +201,7 @@ function AssessmentCreateForm({
         <>
             <div className="form-card compact-form-card assessment-create-launch-card">
                 <div>
-                    <p className="eyebrow">Assessment Builder v2</p>
+                    <p className="eyebrow">Assessment Builder</p>
                     <h2>Create Assessment</h2>
                     <p>
                         Build sections with multiple choice, short-answer, and coding

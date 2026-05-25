@@ -47,6 +47,18 @@ export function getQuestionBreakdown(assignment) {
 export function getReviewFlags(assignment) {
     const flags = [];
 
+    if (assignment.reviewStatus === "NEEDS_EXECUTION") {
+        flags.push({ type: "execution", label: "Run grading" });
+    }
+
+    if (assignment.reviewStatus === "NEEDS_MANUAL_REVIEW") {
+        flags.push({ type: "manual", label: "Manual review" });
+    }
+
+    if (assignment.reviewStatus === "REVIEWED") {
+        flags.push({ type: "reviewed", label: "Reviewed" });
+    }
+
     if (assignment.status === "SUBMITTED") {
         flags.push({ type: "review", label: "Needs review" });
     }
@@ -54,12 +66,13 @@ export function getReviewFlags(assignment) {
     if (
         assignment.status === "SUBMITTED" &&
         assignment.assessmentType === "CODING_CHALLENGE" &&
-        ["NOT_RUN", "PENDING_EXECUTION", null, undefined].includes(assignment.executionStatus)
+        ["NOT_RUN", "PENDING_EXECUTION", null, undefined].includes(assignment.executionStatus) &&
+        assignment.reviewStatus !== "NEEDS_EXECUTION"
     ) {
         flags.push({ type: "execution", label: "Run grading" });
     }
 
-    if (hasSubmittedShortAnswers(assignment)) {
+    if (hasSubmittedShortAnswers(assignment) && assignment.reviewStatus !== "NEEDS_MANUAL_REVIEW") {
         flags.push({ type: "manual", label: "Manual answers" });
     }
 
@@ -87,6 +100,14 @@ export function getHiringSignal(assignment) {
 
     if (assignment.status === "ASSIGNED") {
         return { type: "pending", label: "Waiting" };
+    }
+
+    if (assignment.reviewStatus === "NEEDS_EXECUTION") {
+        return { type: "review", label: "Run grading" };
+    }
+
+    if (assignment.reviewStatus === "NEEDS_MANUAL_REVIEW") {
+        return { type: "review", label: "Manual review" };
     }
 
     if (assignment.status === "SUBMITTED") {

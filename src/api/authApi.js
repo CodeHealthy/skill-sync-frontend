@@ -26,4 +26,24 @@ export const authApi = {
     resetPassword: (payload) => {
         return axiosClient.post("/auth/reset-password", payload);
     },
+
+    getInvite: (token) => {
+        return axiosClient.get("/auth/invite", {
+            params: { token },
+        });
+    },
+
+    acceptInvite: (payload) => {
+        return axiosClient.post("/auth/accept-invite", payload);
+    },
+
+    getTeamInvite: ({ token, name }) => {
+        return axiosClient.get("/auth/team-invite", {
+            params: { token, name },
+        });
+    },
+
+    acceptTeamInvite: (payload) => {
+        return axiosClient.post("/auth/accept-team-invite", payload);
+    },
 };

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { showError, showSuccess } from "../utils/toastUtils";
+import { getDashboardPathForRole } from "../utils/roleUtils";
 
 function OAuthSuccessPage() {
     const [searchParams] = useSearchParams();
@@ -31,11 +32,7 @@ function OAuthSuccessPage() {
 
         showSuccess("Logged in with Google.");
 
-        if (role === "ADMIN") {
-            navigate("/admin", { replace: true });
-        } else {
-            navigate("/candidate", { replace: true });
-        }
+        navigate(getDashboardPathForRole(role), { replace: true });
     }, [searchParams, navigate]);
 
     return (

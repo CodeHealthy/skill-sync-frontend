@@ -7,7 +7,7 @@ import MyAssignmentsPanel from "../components/candidate/MyAssignmentsPanel";
 import CandidateResultsPanel from "../components/candidate/CandidateResultsPanel";
 import CandidateProfilePanel from "../components/candidate/CandidateProfilePanel";
 import { CANDIDATE_PAGE_SIZE } from "../constants/pagination";
-import { getApiErrorMessage } from "../utils/errorUtils";
+import { getApiErrorMessage, isAuthRedirectError } from "../utils/errorUtils";
 import { paginate } from "../utils/paginationUtils";
 import { showError, showSuccess, showWarning } from "../utils/toastUtils";
 
@@ -52,12 +52,17 @@ function CandidateDashboard() {
             setAssignments(response.data);
 
             const initialCodes = {};
+            const initialAnswers = {};
             response.data.forEach((assignment) => {
                 if (
                     assignment.assessmentType === "CODING_CHALLENGE" &&
                     assignment.status === "ASSIGNED"
                 ) {
-                    initialCodes[assignment.id] = assignment.starterCode || "";
+                    initialCodes[assignment.id] = assignment.draftCode ?? assignment.starterCode ?? "";
+                }
+
+                if (assignment.status === "ASSIGNED" && assignment.draftAnswers) {
+                    initialAnswers[assignment.id] = assignment.draftAnswers;
                 }
             });
 
@@ -65,7 +70,15 @@ function CandidateDashboard() {
                 ...initialCodes,
                 ...current,
             }));
+            setAnswers((current) => ({
+                ...initialAnswers,
+                ...current,
+            }));
         } catch (err) {
+            if (isAuthRedirectError(err)) {
+                return;
+            }
+
             showError(getApiErrorMessage(err, "Failed to load assignments"));
         } finally {
             setLoadingAssignments(false);
@@ -179,9 +192,9 @@ function CandidateDashboard() {
         setStartingAssignmentId(assignment.id);
 
         try {
-            await assessmentApi.startAssignment(assignment.id);
+            const response = await assessmentApi.startAssignment(assignment.id);
+            replaceAssignment(response.data);
             showSuccess("Assessment started.");
-            await fetchAssignments();
         } catch (err) {
             showError(getApiErrorMessage(err, "Failed to start assessment"));
         } finally {
@@ -234,7 +247,8 @@ function CandidateDashboard() {
         setSubmittingAssignmentId(assignment.id);
 
         try {
-            await assessmentApi.submitAssignment(assignment.id, payload);
+            const response = await assessmentApi.submitAssignment(assignment.id, payload);
+            replaceAssignment(response.data);
 
             showSuccess(
                 isAutoSubmit
@@ -252,7 +266,6 @@ function CandidateDashboard() {
                 [assignment.id]: "",
             }));
 
-            await fetchAssignments();
         } catch (err) {
             showError(getApiErrorMessage(err, "Failed to submit assessment"));
         } finally {
@@ -312,6 +325,14 @@ function CandidateDashboard() {
         } finally {
             setRunningAssignmentId(null);
         }
+    };
+
+    const replaceAssignment = (nextAssignment) => {
+        setAssignments((current) =>
+            current.map((assignment) =>
+                assignment.id === nextAssignment.id ? nextAssignment : assignment
+            )
+        );
     };
 
     // ---- Dashboard Tabs ----

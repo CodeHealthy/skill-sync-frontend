@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { assessmentApi } from "../api/assessmentApi";
 import AssignmentDetail from "../components/candidate/AssignmentDetail";
@@ -16,11 +16,23 @@ function CandidateAssessmentSessionPage() {
     const [startingAssignmentId, setStartingAssignmentId] = useState(null);
     const [submittingAssignmentId, setSubmittingAssignmentId] = useState(null);
     const [runningAssignmentId, setRunningAssignmentId] = useState(null);
+    const draftSaveTimerRef = useRef(null);
+    const lastDraftSignatureRef = useRef({});
+    const lastDraftErrorAtRef = useRef(0);
+    const integrityEventThrottleRef = useRef({});
 
     const assignment = useMemo(
         () => assignments.find((item) => item.id === assignmentId) || null,
         [assignmentId, assignments]
     );
+
+    const replaceAssignment = useCallback((nextAssignment) => {
+        setAssignments((current) =>
+            current.map((assignmentItem) =>
+                assignmentItem.id === nextAssignment.id ? nextAssignment : assignmentItem
+            )
+        );
+    }, []);
 
     const fetchAssignments = async () => {
         setLoading(true);
@@ -30,14 +42,32 @@ function CandidateAssessmentSessionPage() {
             setAssignments(response.data);
 
             const initialCodes = {};
+            const initialAnswers = {};
             response.data.forEach((item) => {
+                if (item.status === "ASSIGNED") {
+                    lastDraftSignatureRef.current[item.id] = JSON.stringify({
+                        draftCode: item.assessmentType === "CODING_CHALLENGE"
+                            ? item.draftCode ?? item.starterCode ?? ""
+                            : null,
+                        draftAnswers: item.draftAnswers || {},
+                    });
+                }
+
                 if (item.assessmentType === "CODING_CHALLENGE" && item.status === "ASSIGNED") {
-                    initialCodes[item.id] = item.starterCode || "";
+                    initialCodes[item.id] = item.draftCode ?? item.starterCode ?? "";
+                }
+
+                if (item.status === "ASSIGNED" && item.draftAnswers) {
+                    initialAnswers[item.id] = item.draftAnswers;
                 }
             });
 
             setCodes((current) => ({
                 ...initialCodes,
+                ...current,
+            }));
+            setAnswers((current) => ({
+                ...initialAnswers,
                 ...current,
             }));
         } catch (error) {
@@ -50,6 +80,134 @@ function CandidateAssessmentSessionPage() {
     useEffect(() => {
         fetchAssignments();
     }, [assignmentId]);
+
+    useEffect(() => {
+        if (!assignment || assignment.status !== "ASSIGNED") {
+            return undefined;
+        }
+
+        if (assignment.timeLimitMinutes && !assignment.startedAt) {
+            return undefined;
+        }
+
+        const payload = {
+            draftCode: assignment.assessmentType === "CODING_CHALLENGE"
+                ? codes[assignment.id] || ""
+                : null,
+            draftAnswers: answers[assignment.id] || {},
+        };
+        const signature = JSON.stringify(payload);
+
+        if (lastDraftSignatureRef.current[assignment.id] === signature) {
+            return undefined;
+        }
+
+        if (draftSaveTimerRef.current) {
+            window.clearTimeout(draftSaveTimerRef.current);
+        }
+
+        draftSaveTimerRef.current = window.setTimeout(async () => {
+            try {
+                const response = await assessmentApi.saveAssignmentDraft(assignment.id, payload);
+                lastDraftSignatureRef.current[assignment.id] = signature;
+                replaceAssignment(response.data);
+            } catch (error) {
+                const now = Date.now();
+
+                if (now - lastDraftErrorAtRef.current > 30_000) {
+                    lastDraftErrorAtRef.current = now;
+                    showWarning(getApiErrorMessage(error, "Autosave failed. Keep this page open and try again."));
+                }
+            }
+        }, 1_000);
+
+        return () => {
+            if (draftSaveTimerRef.current) {
+                window.clearTimeout(draftSaveTimerRef.current);
+            }
+        };
+    }, [assignment, answers, codes, replaceAssignment]);
+
+    const recordIntegrityEvent = useCallback((type, detail = "") => {
+        if (!assignment || assignment.status !== "ASSIGNED") {
+            return;
+        }
+
+        if (assignment.timeLimitMinutes && !assignment.startedAt) {
+            return;
+        }
+
+        const throttleKey = `${assignment.id}:${type}`;
+        const now = Date.now();
+
+        if (
+            integrityEventThrottleRef.current[throttleKey] &&
+            now - integrityEventThrottleRef.current[throttleKey] < 5_000
+        ) {
+            return;
+        }
+
+        integrityEventThrottleRef.current[throttleKey] = now;
+
+        assessmentApi.recordIntegrityEvent(assignment.id, {
+            type,
+            detail,
+        }).catch(() => {
+            // Integrity logging is advisory and should never interrupt the candidate's work.
+        });
+    }, [assignment]);
+
+    useEffect(() => {
+        if (!assignment || assignment.status !== "ASSIGNED") {
+            return undefined;
+        }
+
+        recordIntegrityEvent("SESSION_START", "Candidate opened the assessment workspace.");
+
+        const handleBlur = () => {
+            recordIntegrityEvent("WINDOW_BLUR", "Assessment window lost focus.");
+        };
+        const handleFocus = () => {
+            recordIntegrityEvent("WINDOW_FOCUS", "Assessment window regained focus.");
+        };
+        const handleVisibilityChange = () => {
+            recordIntegrityEvent(
+                document.hidden ? "VISIBILITY_HIDDEN" : "VISIBILITY_VISIBLE",
+                document.hidden ? "Assessment tab became hidden." : "Assessment tab became visible."
+            );
+        };
+        const handleCopy = () => {
+            recordIntegrityEvent("COPY", "Candidate copied content during the assessment.");
+        };
+        const handlePaste = () => {
+            recordIntegrityEvent("PASTE", "Candidate pasted content during the assessment.");
+        };
+        const handleContextMenu = () => {
+            recordIntegrityEvent("CONTEXT_MENU", "Candidate opened the context menu during the assessment.");
+        };
+        const handleBeforeUnload = () => {
+            recordIntegrityEvent("SESSION_END", "Candidate left or refreshed the assessment workspace.");
+        };
+
+        window.addEventListener("blur", handleBlur);
+        window.addEventListener("focus", handleFocus);
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        document.addEventListener("copy", handleCopy);
+        document.addEventListener("paste", handlePaste);
+        document.addEventListener("contextmenu", handleContextMenu);
+
+        return () => {
+            recordIntegrityEvent("SESSION_END", "Candidate closed the assessment workspace.");
+            window.removeEventListener("blur", handleBlur);
+            window.removeEventListener("focus", handleFocus);
+            window.removeEventListener("beforeunload", handleBeforeUnload);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+            document.removeEventListener("copy", handleCopy);
+            document.removeEventListener("paste", handlePaste);
+            document.removeEventListener("contextmenu", handleContextMenu);
+        };
+    }, [assignment, recordIntegrityEvent]);
 
     const handleAnswerChange = (id, value) => {
         setAnswers((current) => ({
@@ -73,9 +231,9 @@ function CandidateAssessmentSessionPage() {
         setStartingAssignmentId(item.id);
 
         try {
-            await assessmentApi.startAssignment(item.id);
+            const response = await assessmentApi.startAssignment(item.id);
+            replaceAssignment(response.data);
             showSuccess("Assessment started.");
-            await fetchAssignments();
         } catch (error) {
             showError(getApiErrorMessage(error, "Failed to start assessment"));
         } finally {
@@ -126,6 +284,9 @@ function CandidateAssessmentSessionPage() {
 
         if (isAutoSubmit) {
             payload.autoSubmitted = true;
+            recordIntegrityEvent("AUTO_SUBMIT", "Assessment submitted automatically by timer.");
+        } else {
+            recordIntegrityEvent("MANUAL_SUBMIT", "Candidate clicked final submit.");
         }
 
         if (isCodingChallenge && (!payload.submittedCode || !payload.submittedCode.trim())) {
@@ -154,7 +315,12 @@ function CandidateAssessmentSessionPage() {
         setSubmittingAssignmentId(item.id);
 
         try {
-            await assessmentApi.submitAssignment(item.id, payload);
+            const response = await assessmentApi.submitAssignment(item.id, payload);
+            replaceAssignment(response.data);
+            lastDraftSignatureRef.current[item.id] = JSON.stringify({
+                draftCode: "",
+                draftAnswers: {},
+            });
 
             showSuccess(
                 isAutoSubmit

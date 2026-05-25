@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { authApi } from "../api/authApi";
 import { getApiErrorMessage } from "../utils/errorUtils";
 import { showError, showSuccess, showWarning } from "../utils/toastUtils";
+import { getDashboardPathForRole } from "../utils/roleUtils";
 
 function LoginPage() {
     const { login, isAuthenticated, user } = useAuth();
@@ -77,15 +78,7 @@ function LoginPage() {
     }, [resendCooldownSeconds]);
 
     if (isAuthenticated) {
-        if (user?.role === "ADMIN") {
-            return <Navigate to="/admin" replace />;
-        }
-
-        if (user?.role === "CANDIDATE") {
-            return <Navigate to="/candidate" replace />;
-        }
-
-        return <Navigate to="/" replace />;
+        return <Navigate to={getDashboardPathForRole(user?.role)} replace />;
     }
 
     const handleChange = (event) => {
@@ -128,11 +121,7 @@ function LoginPage() {
                 return;
             }
 
-            if (authData.role === "ADMIN") {
-                navigate("/admin", { replace: true });
-            } else {
-                navigate("/candidate", { replace: true });
-            }
+            navigate(getDashboardPathForRole(authData.role), { replace: true });
         } catch (err) {
             const message = getApiErrorMessage(err, "Invalid email or password");
 

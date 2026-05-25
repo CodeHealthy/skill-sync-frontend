@@ -24,6 +24,7 @@ axiosClient.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
+            error.isAuthRedirect = true;
             localStorage.removeItem("skillsync_token");
             localStorage.removeItem("skillsync_user");
 

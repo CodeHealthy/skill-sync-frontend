@@ -11,6 +11,8 @@ export function useSubscription(fallbackUsage = {}) {
         fallbackUsage[PLAN_FEATURES.ACTIVE_ASSESSMENTS];
     const fallbackCandidateInvites =
         fallbackUsage[PLAN_FEATURES.CANDIDATE_INVITES];
+    const fallbackTeamMembers =
+        fallbackUsage[PLAN_FEATURES.TEAM_MEMBERS];
 
     const fetchSubscription = useCallback(async () => {
         setLoading(true);
@@ -31,6 +33,9 @@ export function useSubscription(fallbackUsage = {}) {
                         [PLAN_FEATURES.CANDIDATE_INVITES]:
                             fallbackCandidateInvites ??
                             current.usage?.[PLAN_FEATURES.CANDIDATE_INVITES],
+                        [PLAN_FEATURES.TEAM_MEMBERS]:
+                            fallbackTeamMembers ??
+                            current.usage?.[PLAN_FEATURES.TEAM_MEMBERS],
                     },
                 })
             );
@@ -38,7 +43,7 @@ export function useSubscription(fallbackUsage = {}) {
         } finally {
             setLoading(false);
         }
-    }, [fallbackActiveAssessments, fallbackCandidateInvites]);
+    }, [fallbackActiveAssessments, fallbackCandidateInvites, fallbackTeamMembers]);
 
     useEffect(() => {
         fetchSubscription();

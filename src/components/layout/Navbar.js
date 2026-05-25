@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
+import {
+    getDashboardPathForRole,
+    isOrgStaffRole,
+    isPlatformAdminRole,
+} from "../../utils/roleUtils";
 
 function Navbar() {
     const { user, isAuthenticated, logout } = useAuth();
@@ -9,9 +14,12 @@ function Navbar() {
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const userMenuRef = useRef(null);
 
-    const dashboardPath = user?.role === "ADMIN" ? "/admin" : "/candidate";
-    const dashboardLabel =
-        user?.role === "ADMIN" ? "Admin Dashboard" : "Candidate Portal";
+    const dashboardPath = getDashboardPathForRole(user?.role);
+    const dashboardLabel = isPlatformAdminRole(user?.role)
+        ? "Super Admin"
+        : isOrgStaffRole(user?.role)
+            ? "Admin Dashboard"
+            : "Candidate Portal";
 
     const closeMenu = () => {
         setMenuOpen(false);
@@ -145,7 +153,7 @@ function Navbar() {
                                     >
                                         Settings
                                     </Link>
-                                    {user?.role === "ADMIN" && (
+                                    {isOrgStaffRole(user?.role) && (
                                         <Link
                                             to="/pricing"
                                             className="navbar-user-dropdown-item"

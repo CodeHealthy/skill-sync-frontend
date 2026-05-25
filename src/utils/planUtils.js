@@ -1,18 +1,37 @@
-import { DEFAULT_SUBSCRIPTION, PLAN_DEFINITIONS, PLAN_FEATURES, PLAN_IDS } from "../constants/plans";
+import { DEFAULT_PLAN, DEFAULT_SUBSCRIPTION, PLAN_FEATURES } from "../constants/plans";
 
-export function getPlanDefinition(planId) {
-    return (
-        PLAN_DEFINITIONS.find((plan) => plan.id === planId) ||
-        PLAN_DEFINITIONS.find((plan) => plan.id === PLAN_IDS.FREE)
-    );
+export function getPlanId(plan) {
+    return plan?.code || plan?.id || DEFAULT_PLAN.code;
+}
+
+export function normalizePlan(plan) {
+    const normalized = {
+        ...DEFAULT_PLAN,
+        ...(plan || {}),
+        features: {
+            ...DEFAULT_PLAN.features,
+            ...(plan?.features || {}),
+        },
+    };
+
+    return {
+        ...normalized,
+        id: getPlanId(normalized),
+        code: getPlanId(normalized),
+        highlights: Array.isArray(normalized.highlights)
+            ? normalized.highlights
+            : [],
+    };
 }
 
 export function normalizeSubscription(subscription) {
-    const planId = subscription?.planId || subscription?.plan || DEFAULT_SUBSCRIPTION.planId;
+    const plan = normalizePlan(subscription?.plan);
+    const planId = subscription?.planId || subscription?.plan || plan.code;
 
     return {
         ...DEFAULT_SUBSCRIPTION,
         ...subscription,
+        plan,
         planId,
         usage: {
             ...DEFAULT_SUBSCRIPTION.usage,
@@ -22,8 +41,7 @@ export function normalizeSubscription(subscription) {
 }
 
 export function getPlanLimit(subscription, feature) {
-    const plan = getPlanDefinition(subscription?.planId);
-    return plan?.limits?.[feature];
+    return normalizeSubscription(subscription).plan?.features?.[feature];
 }
 
 export function hasFeatureAccess(subscription, feature) {
@@ -93,16 +111,48 @@ export function buildPlanCapabilities(subscription, fallbackUsage = {}) {
         PLAN_FEATURES.CANDIDATE_INVITES,
         fallbackUsage[PLAN_FEATURES.CANDIDATE_INVITES]
     );
+    const teamUsage = getUsageStatus(
+        normalized,
+        PLAN_FEATURES.TEAM_MEMBERS,
+        fallbackUsage[PLAN_FEATURES.TEAM_MEMBERS]
+    );
 
     return {
         subscription: normalized,
-        plan: getPlanDefinition(normalized.planId),
+        plan: normalized.plan,
         assessmentUsage,
         inviteUsage,
+        teamUsage,
         canCreateAssessment: !assessmentUsage.isAtLimit,
         canInviteCandidate: !inviteUsage.isAtLimit,
+        canInviteTeamMember: !teamUsage.isAtLimit,
         canUseAiGeneration: hasFeatureAccess(normalized, PLAN_FEATURES.AI_GENERATION),
         canUseProctoring: hasFeatureAccess(normalized, PLAN_FEATURES.PROCTORING),
         canCustomizeBranding: hasFeatureAccess(normalized, PLAN_FEATURES.BRANDING),
     };
+}
+
+export function formatPlanPrice(plan) {
+    const normalized = normalizePlan(plan);
+    const price = Number(normalized.pricing || 0);
+
+    if (price === 0 || normalized.isFree) {
+        return "0";
+    }
+
+    return new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: normalized.currency || "AED",
+        maximumFractionDigits: 0,
+    }).format(price);
+}
+
+export function formatBillingCycle(plan) {
+    const cycle = normalizePlan(plan).billingCycle;
+
+    if (!cycle || cycle === "forever") {
+        return "forever";
+    }
+
+    return `per ${cycle}`;
 }

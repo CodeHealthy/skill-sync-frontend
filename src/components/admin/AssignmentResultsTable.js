@@ -210,6 +210,10 @@ function AssignmentResultsTable({
                                             <div className="score-cell">
                                                 <strong>{assignment.score}/{assignment.maxScore || 100}</strong>
                                                 <span>{scorePercent}%</span>
+                                                {assignment.autoScore !== null &&
+                                                    assignment.autoScore !== undefined && (
+                                                    <span>Auto {assignment.autoScore}</span>
+                                                )}
                                             </div>
                                         ) : (
                                             "-"

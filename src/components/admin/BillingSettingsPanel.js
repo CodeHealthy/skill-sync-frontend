@@ -11,6 +11,7 @@ function BillingSettingsPanel({
     subscription,
     assessmentUsage,
     inviteUsage,
+    teamUsage,
     loading,
     onRefresh,
 }) {
@@ -73,6 +74,7 @@ function BillingSettingsPanel({
             <div className="dashboard-panel-grid dashboard-panel-grid-equal">
                 <UsageLimitBanner label="Active assessments" usage={assessmentUsage} />
                 <UsageLimitBanner label="Candidate invites this month" usage={inviteUsage} />
+                <UsageLimitBanner label="Team members" usage={teamUsage} />
             </div>
 
             <section className="billing-plan-section">

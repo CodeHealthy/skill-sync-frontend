@@ -39,6 +39,20 @@ export const assessmentApi = {
         );
     },
 
+    saveAssignmentDraft: (assignmentId, payload) => {
+        return axiosClient.patch(
+            `/assessments/assignments/${assignmentId}/draft`,
+            payload
+        );
+    },
+
+    recordIntegrityEvent: (assignmentId, payload) => {
+        return axiosClient.post(
+            `/assessments/assignments/${assignmentId}/integrity-events`,
+            payload
+        );
+    },
+
     submitAssignment: (assignmentId, payload) => {
         return axiosClient.post(
             `/assessments/assignments/${assignmentId}/submit`,

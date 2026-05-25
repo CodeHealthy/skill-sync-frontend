@@ -1,12 +1,20 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import {
+    getDashboardPathForRole,
+    isOrgStaffRole,
+    isPlatformAdminRole,
+} from "../utils/roleUtils";
 
 function HomePage() {
     const { user, isAuthenticated } = useAuth();
 
-    const dashboardPath = user?.role === "ADMIN" ? "/admin" : "/candidate";
-    const dashboardLabel =
-        user?.role === "ADMIN" ? "Go to Admin Dashboard" : "Go to Candidate Portal";
+    const dashboardPath = getDashboardPathForRole(user?.role);
+    const dashboardLabel = isPlatformAdminRole(user?.role)
+        ? "Go to Super Admin"
+        : isOrgStaffRole(user?.role)
+            ? "Go to Admin Dashboard"
+            : "Go to Candidate Portal";
 
     return (
         <main className="landing-page">

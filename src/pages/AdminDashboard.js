@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { assessmentApi } from "../api/assessmentApi";
+import { auditApi } from "../api/auditApi";
 import { candidateApi } from "../api/candidateApi";
+import { teamApi } from "../api/teamApi";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import AdminOverviewPanel from "../components/admin/AdminOverviewPanel";
 import ManageCandidatesPanel from "../components/admin/ManageCandidatesPanel";
@@ -9,6 +11,8 @@ import CreateAssessmentPanel from "../components/admin/CreateAssessmentPanel";
 import ViewResultsPanel from "../components/admin/ViewResultsPanel";
 import AdminProfilePanel from "../components/admin/AdminProfilePanel";
 import BillingSettingsPanel from "../components/admin/BillingSettingsPanel";
+import TeamSettingsPanel from "../components/admin/TeamSettingsPanel";
+import AuditLogPanel from "../components/admin/AuditLogPanel";
 import AiAssessmentGeneratorModal from "../components/admin/AiAssessmentGeneratorModal";
 import ConfirmModal from "../components/common/ConfirmModal";
 import UsageLimitBanner from "../components/billing/UsageLimitBanner";
@@ -27,7 +31,7 @@ import {
 } from "../features/assessments/assessmentFormUtils";
 import { normalizeAiDraftForBuilder } from "../features/assessments/aiDraftUtils";
 import { buildGradePayload } from "../features/results/manualReviewUtils";
-import { getApiErrorMessage } from "../utils/errorUtils";
+import { getApiErrorMessage, isAuthRedirectError } from "../utils/errorUtils";
 import { paginate } from "../utils/paginationUtils";
 import { showError, showSuccess } from "../utils/toastUtils";
 
@@ -52,12 +56,21 @@ function AdminDashboard() {
         timeLimitMinutes: "",
     });
 
+    const [teamInviteForm, setTeamInviteForm] = useState({
+        fullName: "",
+        email: "",
+        role: "RECRUITER",
+    });
+
     const [gradeForms, setGradeForms] = useState({});
 
     // ---- Data ----
     const [candidates, setCandidates] = useState([]);
     const [assessments, setAssessments] = useState([]);
     const [assignments, setAssignments] = useState([]);
+    const [teamMembers, setTeamMembers] = useState([]);
+    const [pendingTeamInvites, setPendingTeamInvites] = useState([]);
+    const [auditLogs, setAuditLogs] = useState([]);
 
     // ---- Candidates Tab State ----
     const [candidateSearch, setCandidateSearch] = useState("");
@@ -77,12 +90,17 @@ function AdminDashboard() {
     const [assignmentLanguageFilter, setAssignmentLanguageFilter] = useState("ALL");
     const [assignmentPage, setAssignmentPage] = useState(1);
     const [expandedAssignmentId, setExpandedAssignmentId] = useState(null);
+    const [auditActionFilter, setAuditActionFilter] = useState("");
 
     // ---- Loading & Modal States ----
     const [loadingDashboard, setLoadingDashboard] = useState(false);
     const [creatingCandidate, setCreatingCandidate] = useState(false);
     const [creatingAssessment, setCreatingAssessment] = useState(false);
     const [assigningAssessment, setAssigningAssessment] = useState(false);
+    const [loadingTeam, setLoadingTeam] = useState(false);
+    const [loadingAuditLogs, setLoadingAuditLogs] = useState(false);
+    const [invitingTeamMember, setInvitingTeamMember] = useState(false);
+    const [teamActionId, setTeamActionId] = useState(null);
     const [gradingAssignmentId, setGradingAssignmentId] = useState(null);
     const [executingAssignmentId, setExecutingAssignmentId] = useState(null);
     const [confirmAction, setConfirmAction] = useState(null);
@@ -107,15 +125,66 @@ function AdminDashboard() {
             setAssessments(assessmentResponse.data);
             setAssignments(assignmentResponse.data);
         } catch (err) {
+            if (isAuthRedirectError(err)) {
+                return;
+            }
+
             showError(getApiErrorMessage(err, "Failed to load dashboard data"));
         } finally {
             setLoadingDashboard(false);
         }
     };
 
+    const fetchTeamMembers = async () => {
+        setLoadingTeam(true);
+
+        try {
+            const [membersResponse, invitesResponse] = await Promise.all([
+                teamApi.getTeamMembers(),
+                teamApi.getPendingInvites(),
+            ]);
+
+            setTeamMembers(membersResponse.data || []);
+            setPendingTeamInvites(invitesResponse.data || []);
+        } catch (err) {
+            if (isAuthRedirectError(err)) {
+                return;
+            }
+
+            showError(getApiErrorMessage(err, "Failed to load team members"));
+        } finally {
+            setLoadingTeam(false);
+        }
+    };
+
+    const fetchAuditLogs = useCallback(async (action = "") => {
+        setLoadingAuditLogs(true);
+
+        try {
+            const response = await auditApi.getOrganizationLogs(
+                action ? { action } : {}
+            );
+
+            setAuditLogs(response.data || []);
+        } catch (err) {
+            if (isAuthRedirectError(err)) {
+                return;
+            }
+
+            showError(getApiErrorMessage(err, "Failed to load activity history"));
+        } finally {
+            setLoadingAuditLogs(false);
+        }
+    }, []);
+
     useEffect(() => {
         fetchDashboardData();
+        fetchTeamMembers();
     }, []);
+
+    useEffect(() => {
+        fetchAuditLogs(auditActionFilter);
+    }, [auditActionFilter, fetchAuditLogs]);
 
     useEffect(() => {
         setCandidatePage(1);
@@ -153,8 +222,11 @@ function AdminDashboard() {
         () => ({
             [PLAN_FEATURES.ACTIVE_ASSESSMENTS]: assessments.length,
             [PLAN_FEATURES.CANDIDATE_INVITES]: candidates.length,
+            [PLAN_FEATURES.TEAM_MEMBERS]: teamMembers.filter(
+                (member) => member.active !== false
+            ).length,
         }),
-        [assessments.length, candidates.length]
+        [assessments.length, candidates.length, teamMembers]
     );
 
     const {
@@ -162,8 +234,10 @@ function AdminDashboard() {
         plan,
         assessmentUsage,
         inviteUsage,
+        teamUsage,
         canCreateAssessment,
         canInviteCandidate,
+        canInviteTeamMember,
         canUseAiGeneration,
         loading: loadingSubscription,
         refreshSubscription,
@@ -430,6 +504,100 @@ function AdminDashboard() {
             ...current,
             [name]: value,
         }));
+    };
+
+    const handleTeamInviteChange = (event) => {
+        const { name, value } = event.target;
+
+        setTeamInviteForm((current) => ({
+            ...current,
+            [name]: value,
+        }));
+    };
+
+    const handleInviteTeamMember = async (event) => {
+        event.preventDefault();
+
+        if (!teamInviteForm.fullName.trim() || !teamInviteForm.email.trim()) {
+            showError("Please provide both name and email.");
+            return;
+        }
+
+        setInvitingTeamMember(true);
+
+        try {
+            const response = await teamApi.inviteTeamMember({
+                fullName: teamInviteForm.fullName.trim(),
+                email: teamInviteForm.email.trim().toLowerCase(),
+                role: teamInviteForm.role || "RECRUITER",
+            });
+
+            showSuccess(response.data?.message || "Team invite sent.");
+            setTeamInviteForm({ fullName: "", email: "", role: "RECRUITER" });
+            await fetchTeamMembers();
+        } catch (err) {
+            if (isAuthRedirectError(err)) {
+                return;
+            }
+
+            showError(getApiErrorMessage(err, "Failed to invite team member"));
+        } finally {
+            setInvitingTeamMember(false);
+        }
+    };
+
+    const handleResendTeamInvite = async (inviteId) => {
+        setTeamActionId(inviteId);
+
+        try {
+            const response = await teamApi.resendInvite(inviteId);
+            showSuccess(response.data?.message || "Team invite resent.");
+            await fetchTeamMembers();
+        } catch (err) {
+            if (isAuthRedirectError(err)) {
+                return;
+            }
+
+            showError(getApiErrorMessage(err, "Failed to resend team invite"));
+        } finally {
+            setTeamActionId(null);
+        }
+    };
+
+    const handleRevokeTeamInvite = async (inviteId) => {
+        setTeamActionId(inviteId);
+
+        try {
+            const response = await teamApi.revokeInvite(inviteId);
+            showSuccess(response.data?.message || "Team invite revoked.");
+            await fetchTeamMembers();
+        } catch (err) {
+            if (isAuthRedirectError(err)) {
+                return;
+            }
+
+            showError(getApiErrorMessage(err, "Failed to revoke team invite"));
+        } finally {
+            setTeamActionId(null);
+        }
+    };
+
+    const handleDeactivateTeamMember = async (userId) => {
+        setTeamActionId(userId);
+
+        try {
+            const response = await teamApi.deactivateMember(userId);
+            showSuccess(response.data?.message || "Team member deactivated.");
+            await fetchTeamMembers();
+        } catch (err) {
+            if (isAuthRedirectError(err)) {
+                return;
+            }
+
+            showError(getApiErrorMessage(err, "Failed to deactivate team member"));
+        } finally {
+            setTeamActionId(null);
+        }
     };
 
     const handleAssignAssessment = async (event) => {
@@ -745,8 +913,46 @@ function AdminDashboard() {
                     subscription={subscription}
                     assessmentUsage={assessmentUsage}
                     inviteUsage={inviteUsage}
+                    teamUsage={teamUsage}
                     loading={loadingSubscription}
                     onRefresh={refreshSubscription}
+                />
+            ),
+        },
+        {
+            id: "team",
+            label: "Team",
+            icon: "candidates",
+            content: (
+                <TeamSettingsPanel
+                    teamMembers={teamMembers}
+                    pendingInvites={pendingTeamInvites}
+                    teamInviteForm={teamInviteForm}
+                    currentUserId={user?.userId}
+                    loadingTeam={loadingTeam}
+                    invitingTeamMember={invitingTeamMember}
+                    canInviteTeamMember={canInviteTeamMember}
+                    teamActionId={teamActionId}
+                    onTeamInviteChange={handleTeamInviteChange}
+                    onInviteTeamMember={handleInviteTeamMember}
+                    onResendInvite={handleResendTeamInvite}
+                    onRevokeInvite={handleRevokeTeamInvite}
+                    onDeactivateMember={handleDeactivateTeamMember}
+                    onRefresh={fetchTeamMembers}
+                />
+            ),
+        },
+        {
+            id: "activity",
+            label: "Activity",
+            icon: "results",
+            content: (
+                <AuditLogPanel
+                    logs={auditLogs}
+                    loading={loadingAuditLogs}
+                    actionFilter={auditActionFilter}
+                    onActionFilterChange={setAuditActionFilter}
+                    onRefresh={() => fetchAuditLogs(auditActionFilter)}
                 />
             ),
         },

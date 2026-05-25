@@ -21,6 +21,7 @@ const DETAIL_TABS = [
     { id: "scorecard", label: "Scorecard" },
     { id: "submission", label: "Raw Submission" },
     { id: "tests", label: "Test Cases" },
+    { id: "integrity", label: "Integrity" },
     { id: "grading", label: "Grading" },
 ];
 
@@ -117,6 +118,11 @@ function AssignmentDetailsPanel({
                     hint="status"
                 />
                 <ReviewMetric
+                    label="Review"
+                    value={formatReviewStatus(assignment.reviewStatus)}
+                    hint={`${assignment.reviewedQuestionCount ?? 0}/${assignment.totalQuestionCount ?? questionBreakdown.total.count} questions`}
+                />
+                <ReviewMetric
                     label="Timing"
                     value={assignment.timeLimitMinutes ? `${assignment.timeLimitMinutes} min` : "No limit"}
                     hint={assignment.autoSubmitted ? "auto-submitted" : "assessment"}
@@ -180,6 +186,10 @@ function AssignmentDetailsPanel({
                         testCases={testCases}
                         testCaseResults={testCaseResults}
                     />
+                )}
+
+                {activeTab === "integrity" && (
+                    <IntegrityTab assignment={assignment} />
                 )}
 
                 {activeTab === "grading" && (
@@ -246,6 +256,13 @@ function SummaryTab({
                     <DetailItem label="Hidden Tests" value={hiddenResultCount} />
                 </div>
             )}
+
+            <div className="detail-grid compact-detail-grid">
+                <DetailItem label="Auto Score" value={formatPoints(assignment.autoScore)} />
+                <DetailItem label="Coding Score" value={formatPoints(assignment.codingScore)} />
+                <DetailItem label="MCQ Score" value={formatPoints(assignment.multipleChoiceScore)} />
+                <DetailItem label="Manual Review Score" value={formatPoints(assignment.manualReviewScore)} />
+            </div>
 
             <div className="reviewer-section">
                 <div className="reviewer-section-header">
@@ -482,6 +499,30 @@ function formatQuestionType(type) {
     return type || "Question";
 }
 
+function formatReviewStatus(status) {
+    if (status === "PENDING_SUBMISSION") {
+        return "Pending submission";
+    }
+
+    if (status === "NEEDS_EXECUTION") {
+        return "Needs execution";
+    }
+
+    if (status === "NEEDS_MANUAL_REVIEW") {
+        return "Needs manual review";
+    }
+
+    if (status === "REVIEWED") {
+        return "Reviewed";
+    }
+
+    return "Not set";
+}
+
+function formatPoints(value) {
+    return value === null || value === undefined ? "-" : `${value} pts`;
+}
+
 function TestCasesTab({ assignment, testCases, testCaseResults }) {
     const hasResults = testCaseResults.length > 0;
 
@@ -551,6 +592,99 @@ function TestCasesTab({ assignment, testCases, testCaseResults }) {
             )}
         </div>
     );
+}
+
+function IntegrityTab({ assignment }) {
+    const events = Array.isArray(assignment.integrityEvents)
+        ? [...assignment.integrityEvents].sort((left, right) =>
+            new Date(right.occurredAt || 0).getTime() -
+            new Date(left.occurredAt || 0).getTime()
+        )
+        : [];
+    const eventCounts = events.reduce((summary, event) => {
+        summary[event.type] = (summary[event.type] || 0) + 1;
+        return summary;
+    }, {});
+
+    if (events.length === 0) {
+        return (
+            <div className="reviewer-empty-state">
+                No integrity events have been recorded for this assignment.
+            </div>
+        );
+    }
+
+    return (
+        <div className="reviewer-section-stack">
+            <section className="reviewer-section">
+                <div className="reviewer-section-header">
+                    <div>
+                        <h4>Integrity Summary</h4>
+                        <p>Candidate session behavior signals captured during the assessment.</p>
+                    </div>
+                    <strong>{events.length} events</strong>
+                </div>
+
+                <div className="score-breakdown-grid">
+                    <ScoreBreakdownItem
+                        label="Window changes"
+                        count="blur/focus"
+                        points={(eventCounts.WINDOW_BLUR || 0) + (eventCounts.VISIBILITY_HIDDEN || 0)}
+                        unit="events"
+                    />
+                    <ScoreBreakdownItem
+                        label="Clipboard"
+                        count="copy/paste"
+                        points={(eventCounts.COPY || 0) + (eventCounts.PASTE || 0)}
+                        unit="events"
+                    />
+                    <ScoreBreakdownItem
+                        label="Context menu"
+                        count="right click"
+                        points={eventCounts.CONTEXT_MENU || 0}
+                        unit="events"
+                    />
+                    <ScoreBreakdownItem
+                        label="Sessions"
+                        count="open/close"
+                        points={(eventCounts.SESSION_START || 0) + (eventCounts.SESSION_END || 0)}
+                        unit="events"
+                    />
+                </div>
+            </section>
+
+            <section className="reviewer-section">
+                <div className="reviewer-section-header">
+                    <div>
+                        <h4>Event Timeline</h4>
+                        <p>Most recent activity first.</p>
+                    </div>
+                </div>
+
+                <div className="compact-test-list">
+                    {events.map((event, index) => (
+                        <div className="compact-test-row" key={`${event.type}-${event.occurredAt}-${index}`}>
+                            <div className="test-case-result-header">
+                                <div>
+                                    <strong>{formatIntegrityEventType(event.type)}</strong>
+                                    <p className="muted-cell">{event.detail || "No detail provided"}</p>
+                                </div>
+                                <span>{formatDate(event.occurredAt)}</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </section>
+        </div>
+    );
+}
+
+function formatIntegrityEventType(type) {
+    return (type || "OTHER")
+        .toLowerCase()
+        .split("_")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
 }
 
 function GradingTab({
@@ -836,7 +970,7 @@ function ReviewMetric({ label, value, hint }) {
     );
 }
 
-function ScoreBreakdownItem({ label, count, points }) {
+function ScoreBreakdownItem({ label, count, points, unit = "pts" }) {
     const countLabel = typeof count === "number"
         ? `${count} ${count === 1 ? "item" : "items"}`
         : count;
@@ -844,7 +978,7 @@ function ScoreBreakdownItem({ label, count, points }) {
     return (
         <div className="score-breakdown-item">
             <span>{label}</span>
-            <strong>{points} pts</strong>
+            <strong>{points} {unit}</strong>
             <small>{countLabel}</small>
         </div>
     );
