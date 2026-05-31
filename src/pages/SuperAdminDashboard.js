@@ -3,6 +3,7 @@ import { auditApi } from "../api/auditApi";
 import { platformAdminApi } from "../api/platformAdminApi";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import AuditLogPanel from "../components/admin/AuditLogPanel";
+import SubscriptionPlanManagementPanel from "../components/superadmin/SubscriptionPlanManagementPanel";
 import { getApiErrorMessage, isAuthRedirectError } from "../utils/errorUtils";
 import { showError } from "../utils/toastUtils";
 import { useAuth } from "../auth/AuthContext";
@@ -150,6 +151,12 @@ function SuperAdminDashboard() {
                     </section>
                 </div>
             ),
+        },
+        {
+            id: "plans",
+            label: "Plans",
+            icon: "billing",
+            content: <SubscriptionPlanManagementPanel />,
         },
         {
             id: "audit",

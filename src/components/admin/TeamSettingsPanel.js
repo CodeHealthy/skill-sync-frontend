@@ -44,8 +44,9 @@ function TeamSettingsPanel({
 
                 <form className="form-grid" onSubmit={onInviteTeamMember}>
                     <div>
-                        <label>Full Name</label>
+                        <label htmlFor="team-member-full-name">Full Name</label>
                         <input
+                            id="team-member-full-name"
                             name="fullName"
                             type="text"
                             value={teamInviteForm.fullName}
@@ -57,8 +58,9 @@ function TeamSettingsPanel({
                     </div>
 
                     <div>
-                        <label>Email</label>
+                        <label htmlFor="team-member-email">Email</label>
                         <input
+                            id="team-member-email"
                             name="email"
                             type="email"
                             value={teamInviteForm.email}
@@ -70,8 +72,9 @@ function TeamSettingsPanel({
                     </div>
 
                     <div>
-                        <label>Role</label>
+                        <label htmlFor="team-member-role">Role</label>
                         <select
+                            id="team-member-role"
                             name="role"
                             value={teamInviteForm.role || "RECRUITER"}
                             onChange={onTeamInviteChange}

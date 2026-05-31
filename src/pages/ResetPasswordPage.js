@@ -88,8 +88,9 @@ function ResetPasswordPage() {
                 )}
 
                 <form onSubmit={handleSubmit}>
-                    <label>New Password</label>
+                    <label htmlFor="reset-new-password">New Password</label>
                     <input
+                        id="reset-new-password"
                         name="newPassword"
                         type="password"
                         value={formData.newPassword}
@@ -116,8 +117,9 @@ function ResetPasswordPage() {
                         ))}
                     </div>
 
-                    <label>Confirm New Password</label>
+                    <label htmlFor="reset-confirm-new-password">Confirm New Password</label>
                     <input
+                        id="reset-confirm-new-password"
                         name="confirmNewPassword"
                         type="password"
                         value={formData.confirmNewPassword}

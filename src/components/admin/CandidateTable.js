@@ -23,12 +23,14 @@ function CandidateTable({
 
             <div className="table-toolbar">
                 <input
+                    aria-label="Search candidates"
                     value={candidateSearch}
                     onChange={(event) => onCandidateSearchChange(event.target.value)}
                     placeholder="Search by name or email"
                 />
 
                 <select
+                    aria-label="Filter candidates by status"
                     value={candidateStatusFilter}
                     onChange={(event) => onCandidateStatusFilterChange(event.target.value)}
                 >

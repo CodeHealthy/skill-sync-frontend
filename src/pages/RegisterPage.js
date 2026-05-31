@@ -116,8 +116,9 @@ function RegisterPage() {
                 <p>Set up your organization to create assessments and invite candidates.</p>
 
                 <form onSubmit={handleSubmit}>
-                    <label>Full Name</label>
+                    <label htmlFor="register-full-name">Full Name</label>
                     <input
+                        id="register-full-name"
                         name="fullName"
                         type="text"
                         value={formData.fullName}
@@ -127,8 +128,9 @@ function RegisterPage() {
                         required
                     />
 
-                    <label>Work Email</label>
+                    <label htmlFor="register-email">Work Email</label>
                     <input
+                        id="register-email"
                         name="email"
                         type="email"
                         value={formData.email}
@@ -138,8 +140,9 @@ function RegisterPage() {
                         required
                     />
 
-                    <label>Organization Name</label>
+                    <label htmlFor="register-organization-name">Organization Name</label>
                     <input
+                        id="register-organization-name"
                         name="organizationName"
                         type="text"
                         value={formData.organizationName}
@@ -149,8 +152,9 @@ function RegisterPage() {
                         required
                     />
 
-                    <label>Password</label>
+                    <label htmlFor="register-password">Password</label>
                     <input
+                        id="register-password"
                         name="password"
                         type="password"
                         value={formData.password}
@@ -176,8 +180,9 @@ function RegisterPage() {
                         ))}
                     </div>
 
-                    <label>Confirm Password</label>
+                    <label htmlFor="register-confirm-password">Confirm Password</label>
                     <input
+                        id="register-confirm-password"
                         name="confirmPassword"
                         type="password"
                         value={formData.confirmPassword}

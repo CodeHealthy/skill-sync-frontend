@@ -150,16 +150,18 @@ function AcceptTeamInvitePage() {
 
                 {invite && !inviteError && (
                     <form onSubmit={handleSubmit}>
-                        <label>Organization</label>
+                        <label htmlFor="team-invite-organization">Organization</label>
                         <input
+                            id="team-invite-organization"
                             type="text"
                             value={invite.organizationName || ""}
                             readOnly
                             aria-readonly="true"
                         />
 
-                        <label>Full Name</label>
+                        <label htmlFor="team-invite-full-name">Full Name</label>
                         <input
+                            id="team-invite-full-name"
                             name="fullName"
                             type="text"
                             value={formData.fullName}
@@ -169,16 +171,18 @@ function AcceptTeamInvitePage() {
                             required
                         />
 
-                        <label>Email</label>
+                        <label htmlFor="team-invite-email">Email</label>
                         <input
+                            id="team-invite-email"
                             type="email"
                             value={invite.email || ""}
                             readOnly
                             aria-readonly="true"
                         />
 
-                        <label>Password</label>
+                        <label htmlFor="team-invite-password">Password</label>
                         <input
+                            id="team-invite-password"
                             name="password"
                             type="password"
                             value={formData.password}
@@ -204,8 +208,9 @@ function AcceptTeamInvitePage() {
                             ))}
                         </div>
 
-                        <label>Confirm Password</label>
+                        <label htmlFor="team-invite-confirm-password">Confirm Password</label>
                         <input
+                            id="team-invite-confirm-password"
                             name="confirmPassword"
                             type="password"
                             value={formData.confirmPassword}

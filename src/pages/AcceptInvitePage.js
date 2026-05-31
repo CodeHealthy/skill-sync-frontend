@@ -168,8 +168,9 @@ function AcceptInvitePage() {
                         </div>
 
                         <form onSubmit={handleSubmit}>
-                            <label>Full Name</label>
+                            <label htmlFor="candidate-invite-full-name">Full Name</label>
                             <input
+                                id="candidate-invite-full-name"
                                 name="fullName"
                                 type="text"
                                 value={formData.fullName}
@@ -179,16 +180,18 @@ function AcceptInvitePage() {
                                 required
                             />
 
-                            <label>Email</label>
+                            <label htmlFor="candidate-invite-email">Email</label>
                             <input
+                                id="candidate-invite-email"
                                 type="email"
                                 value={invite.email || ""}
                                 readOnly
                                 aria-readonly="true"
                             />
 
-                            <label>Password</label>
+                            <label htmlFor="candidate-invite-password">Password</label>
                             <input
+                                id="candidate-invite-password"
                                 name="password"
                                 type="password"
                                 value={formData.password}
@@ -214,8 +217,9 @@ function AcceptInvitePage() {
                                 ))}
                             </div>
 
-                            <label>Confirm Password</label>
+                            <label htmlFor="candidate-invite-confirm-password">Confirm Password</label>
                             <input
+                                id="candidate-invite-confirm-password"
                                 name="confirmPassword"
                                 type="password"
                                 value={formData.confirmPassword}

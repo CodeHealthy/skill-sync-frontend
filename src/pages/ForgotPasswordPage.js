@@ -50,8 +50,9 @@ function ForgotPasswordPage() {
                 </p>
 
                 <form onSubmit={handleSubmit}>
-                    <label>Email</label>
+                    <label htmlFor="forgot-password-email">Email</label>
                     <input
+                        id="forgot-password-email"
                         type="email"
                         value={email}
                         onChange={(event) => setEmail(event.target.value)}

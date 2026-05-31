@@ -27,6 +27,14 @@ export const authApi = {
         return axiosClient.post("/auth/reset-password", payload);
     },
 
+    logout: () => {
+        return axiosClient.post("/auth/logout");
+    },
+
+    exchangeOAuthCode: (payload) => {
+        return axiosClient.post("/auth/oauth/exchange", payload);
+    },
+
     getInvite: (token) => {
         return axiosClient.get("/auth/invite", {
             params: { token },

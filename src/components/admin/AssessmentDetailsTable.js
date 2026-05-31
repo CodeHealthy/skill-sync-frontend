@@ -26,12 +26,14 @@ function AssessmentDetailsTable({
 
             <div className="table-toolbar">
                 <input
+                    aria-label="Search assessments"
                     value={assessmentSearch}
                     onChange={(event) => onAssessmentSearchChange(event.target.value)}
                     placeholder="Search assessments"
                 />
 
                 <select
+                    aria-label="Filter assessments by type"
                     value={assessmentTypeFilter}
                     onChange={(event) => onAssessmentTypeFilterChange(event.target.value)}
                 >
@@ -41,6 +43,7 @@ function AssessmentDetailsTable({
                 </select>
 
                 <select
+                    aria-label="Filter assessments by language"
                     value={assessmentLanguageFilter}
                     onChange={(event) => onAssessmentLanguageFilterChange(event.target.value)}
                 >

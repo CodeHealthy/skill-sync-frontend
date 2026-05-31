@@ -7,6 +7,7 @@ import {
     useState,
 } from "react";
 import axiosClient from "../api/axiosClient";
+import { authApi } from "../api/authApi";
 
 const AuthContext = createContext(null);
 
@@ -14,24 +15,7 @@ export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [authLoading, setAuthLoading] = useState(true);
 
-    useEffect(() => {
-        const storedUser = localStorage.getItem("skillsync_user");
-
-        if (storedUser) {
-            try {
-                setUser(JSON.parse(storedUser));
-            } catch {
-                localStorage.removeItem("skillsync_user");
-                localStorage.removeItem("skillsync_token");
-            }
-        }
-
-        setAuthLoading(false);
-    }, []);
-
     const saveAuthData = useCallback((authData) => {
-        localStorage.setItem("skillsync_token", authData.token);
-
         const authUser = {
             userId: authData.userId,
             fullName: authData.fullName,
@@ -44,6 +28,46 @@ export function AuthProvider({ children }) {
 
         return authUser;
     }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const storedUser = localStorage.getItem("skillsync_user");
+        if (storedUser) {
+            try {
+                setUser(JSON.parse(storedUser));
+            } catch {
+                localStorage.removeItem("skillsync_user");
+            }
+        }
+
+        const loadCurrentProfile = async () => {
+            try {
+                const response = await axiosClient.get("/profile", {
+                    skipAuthRedirect: true,
+                });
+
+                if (!cancelled) {
+                    saveAuthData(response.data);
+                }
+            } catch {
+                if (!cancelled) {
+                    localStorage.removeItem("skillsync_user");
+                    setUser(null);
+                }
+            } finally {
+                if (!cancelled) {
+                    setAuthLoading(false);
+                }
+            }
+        };
+
+        loadCurrentProfile();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [saveAuthData]);
 
     const updateAuthData = useCallback(
         (authData) => {
@@ -84,7 +108,9 @@ export function AuthProvider({ children }) {
     );
 
     const logout = useCallback(() => {
-        localStorage.removeItem("skillsync_token");
+        authApi.logout().catch(() => {
+            // Local logout should still complete if the session is already expired.
+        });
         localStorage.removeItem("skillsync_user");
         setUser(null);
     }, []);

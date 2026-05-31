@@ -618,10 +618,13 @@ function CodingWorkspace({
     onCodeChange,
     onRunCode,
 }) {
+    const codeInputId = `assignment-${assignment.id}-code`;
+
     return (
         <div className="candidate-code-workspace">
-            <label>Your Code</label>
+            <label htmlFor={codeInputId}>Your Code</label>
             <textarea
+                id={codeInputId}
                 rows="18"
                 className="code-textarea"
                 value={code}
@@ -958,6 +961,7 @@ function QuestionAnswerList({ section, questions, answers, disabled, onAnswerCha
                         ) : (
                             <textarea
                                 rows="6"
+                                aria-label={question.title || `Question ${questionIndex + 1}`}
                                 value={answers[question.id] || ""}
                                 onChange={(event) => onAnswerChange(question.id, event.target.value)}
                                 placeholder="Write your answer here"

@@ -12,7 +12,7 @@ const assignment = {
     prompt: "Solve the coding task.",
     maxScore: 100,
     startedAt: "2026-05-25T09:00:00.000Z",
-    dueAt: "2026-05-26T09:00:00.000Z",
+    dueAt: "2026-06-26T09:00:00.000Z",
     timeLimitMinutes: null,
     sectionAttempts: [],
     sections: [

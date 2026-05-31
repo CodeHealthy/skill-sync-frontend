@@ -186,8 +186,9 @@ function LoginPage() {
                 <p>Use your SkillSync account to continue.</p>
 
                 <form onSubmit={handleSubmit}>
-                    <label>Email</label>
+                    <label htmlFor="login-email">Email</label>
                     <input
+                        id="login-email"
                         name="email"
                         type="email"
                         value={formData.email}
@@ -197,8 +198,9 @@ function LoginPage() {
                         required
                     />
 
-                    <label>Password</label>
+                    <label htmlFor="login-password">Password</label>
                     <input
+                        id="login-password"
                         name="password"
                         type="password"
                         value={formData.password}

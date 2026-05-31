@@ -16,16 +16,18 @@ function CandidateInviteForm({
             )}
 
             <form onSubmit={onCreateCandidate}>
-                <label>Candidate Name</label>
+                <label htmlFor="candidate-invite-name">Candidate Name</label>
                 <input
+                    id="candidate-invite-name"
                     name="name"
                     value={candidateForm.name}
                     onChange={onCandidateChange}
                     required
                 />
 
-                <label>Candidate Email</label>
+                <label htmlFor="candidate-invite-email-address">Candidate Email</label>
                 <input
+                    id="candidate-invite-email-address"
                     name="email"
                     type="email"
                     value={candidateForm.email}

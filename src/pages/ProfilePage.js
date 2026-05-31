@@ -135,24 +135,27 @@ function ProfilePage() {
                     </p>
 
                     <form onSubmit={handleProfileSubmit}>
-                        <label>Full Name</label>
+                        <label htmlFor="profile-full-name">Full Name</label>
                         <input
+                            id="profile-full-name"
                             name="fullName"
                             value={profileForm.fullName}
                             onChange={handleProfileChange}
                             required
                         />
 
-                        <label>Email</label>
+                        <label htmlFor="profile-email">Email</label>
                         <input
+                            id="profile-email"
                             name="email"
                             type="email"
                             value={profileForm.email}
                             disabled
                         />
 
-                        <label>Role</label>
+                        <label htmlFor="profile-role">Role</label>
                         <input
+                            id="profile-role"
                             name="role"
                             value={profileForm.role}
                             disabled
@@ -175,8 +178,9 @@ function ProfilePage() {
                     </p>
 
                     <form onSubmit={handlePasswordSubmit}>
-                        <label>Current Password</label>
+                        <label htmlFor="profile-current-password">Current Password</label>
                         <input
+                            id="profile-current-password"
                             name="currentPassword"
                             type="password"
                             value={passwordForm.currentPassword}
@@ -185,8 +189,9 @@ function ProfilePage() {
                             required
                         />
 
-                        <label>New Password</label>
+                        <label htmlFor="profile-new-password">New Password</label>
                         <input
+                            id="profile-new-password"
                             name="newPassword"
                             type="password"
                             value={passwordForm.newPassword}
@@ -211,8 +216,9 @@ function ProfilePage() {
                             ))}
                         </div>
 
-                        <label>Confirm New Password</label>
+                        <label htmlFor="profile-confirm-new-password">Confirm New Password</label>
                         <input
+                            id="profile-confirm-new-password"
                             name="confirmNewPassword"
                             type="password"
                             value={passwordForm.confirmNewPassword}

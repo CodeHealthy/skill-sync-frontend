@@ -14,12 +14,14 @@ function CandidateFilters({
     return (
         <div className="candidate-filter-grid">
             <input
+                aria-label="Search assessments or organizations"
                 value={searchTerm}
                 onChange={(event) => onSearchTermChange(event.target.value)}
                 placeholder="Search assessment or organization"
             />
 
             <select
+                aria-label="Filter assignments by organization"
                 value={organizationFilter}
                 onChange={(event) => onOrganizationFilterChange(event.target.value)}
             >
@@ -32,6 +34,7 @@ function CandidateFilters({
             </select>
 
             <select
+                aria-label="Filter assignments by status"
                 value={statusFilter}
                 onChange={(event) => onStatusFilterChange(event.target.value)}
             >
@@ -42,6 +45,7 @@ function CandidateFilters({
             </select>
 
             <select
+                aria-label="Filter assignments by execution status"
                 value={executionFilter}
                 onChange={(event) => onExecutionFilterChange(event.target.value)}
             >
@@ -55,6 +59,7 @@ function CandidateFilters({
             </select>
 
             <select
+                aria-label="Filter assignments by language"
                 value={languageFilter}
                 onChange={(event) => onLanguageFilterChange(event.target.value)}
             >

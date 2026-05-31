@@ -37,12 +37,14 @@ function AssignmentResultsTable({
 
             <div className="table-toolbar assignment-toolbar">
                 <input
+                    aria-label="Search assignment results"
                     value={assignmentSearch}
                     onChange={(event) => onAssignmentSearchChange(event.target.value)}
                     placeholder="Search candidate, email, or assessment"
                 />
 
                 <select
+                    aria-label="Filter assignment results by status"
                     value={assignmentStatusFilter}
                     onChange={(event) => onAssignmentStatusFilterChange(event.target.value)}
                 >
@@ -56,6 +58,7 @@ function AssignmentResultsTable({
                 </select>
 
                 <select
+                    aria-label="Filter assignment results by execution status"
                     value={assignmentExecutionFilter}
                     onChange={(event) =>
                         onAssignmentExecutionFilterChange(event.target.value)
@@ -71,6 +74,7 @@ function AssignmentResultsTable({
                 </select>
 
                 <select
+                    aria-label="Filter assignment results by language"
                     value={assignmentLanguageFilter}
                     onChange={(event) =>
                         onAssignmentLanguageFilterChange(event.target.value)

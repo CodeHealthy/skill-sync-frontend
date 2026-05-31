@@ -1,39 +1,54 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { authApi } from "../api/authApi";
+import { useAuth } from "../auth/AuthContext";
 import { showError, showSuccess } from "../utils/toastUtils";
 import { getDashboardPathForRole } from "../utils/roleUtils";
 
 function OAuthSuccessPage() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const { updateAuthData } = useAuth();
 
     useEffect(() => {
-        const token = searchParams.get("token");
-        const userId = searchParams.get("userId");
-        const fullName = searchParams.get("fullName");
-        const email = searchParams.get("email");
-        const role = searchParams.get("role");
+        const exchangeCode = searchParams.get("code");
+        let cancelled = false;
 
-        if (!token || !userId || !email || !role) {
+        if (!exchangeCode) {
             showError("Google login failed. Please try again.");
             navigate("/login", { replace: true });
-            return;
+            return undefined;
         }
 
-        const user = {
-            userId,
-            fullName: fullName || email,
-            email,
-            role,
+        const completeOAuthLogin = async () => {
+            try {
+                const response = await authApi.exchangeOAuthCode({
+                    code: exchangeCode,
+                });
+
+                if (cancelled) {
+                    return;
+                }
+
+                const authData = response.data;
+                updateAuthData(authData);
+
+                showSuccess("Logged in with Google.");
+                navigate(getDashboardPathForRole(authData.role), { replace: true });
+            } catch {
+                if (!cancelled) {
+                    showError("Google login failed. Please try again.");
+                    navigate("/login", { replace: true });
+                }
+            }
         };
 
-        localStorage.setItem("skillsync_token", token);
-        localStorage.setItem("skillsync_user", JSON.stringify(user));
+        completeOAuthLogin();
 
-        showSuccess("Logged in with Google.");
-
-        navigate(getDashboardPathForRole(role), { replace: true });
-    }, [searchParams, navigate]);
+        return () => {
+            cancelled = true;
+        };
+    }, [searchParams, navigate, updateAuthData]);
 
     return (
         <div className="page-container">

@@ -807,6 +807,9 @@ function ManualGradeComposer({
 
                         {(section.questions || []).map((question, questionIndex) => {
                             const review = questionReviews.find((item) => item.questionId === question.id) || {};
+                            const questionKey = question.id || `${sectionIndex}-${questionIndex}`;
+                            const awardedPointsId = `assignment-${assignment.id}-question-${questionKey}-points`;
+                            const reviewNotesId = `assignment-${assignment.id}-question-${questionKey}-notes`;
                             const submittedValue = resolveSubmittedValue(
                                 assignment,
                                 question.id,
@@ -838,8 +841,9 @@ function ManualGradeComposer({
 
                                     <div className="two-column-form manual-review-inputs">
                                         <div>
-                                            <label>Awarded points</label>
+                                            <label htmlFor={awardedPointsId}>Awarded points</label>
                                             <input
+                                                id={awardedPointsId}
                                                 type="number"
                                                 min="0"
                                                 max={review.maxPoints || question.points || 0}
@@ -858,8 +862,9 @@ function ManualGradeComposer({
                                         </div>
 
                                         <div>
-                                            <label>Reviewer notes</label>
+                                            <label htmlFor={reviewNotesId}>Reviewer notes</label>
                                             <textarea
+                                                id={reviewNotesId}
                                                 rows="3"
                                                 value={review.notes || ""}
                                                 onChange={(event) =>
@@ -890,10 +895,13 @@ function ManualGradeComposer({
 }
 
 function FeedbackField({ assignment, gradeForm, onGradeChange }) {
+    const feedbackId = `assignment-${assignment.id}-candidate-feedback`;
+
     return (
         <div>
-            <label>Candidate feedback</label>
+            <label htmlFor={feedbackId}>Candidate feedback</label>
             <textarea
+                id={feedbackId}
                 rows="3"
                 value={gradeForm.feedback ?? assignment.feedback ?? ""}
                 onChange={(event) =>

@@ -11,8 +11,9 @@ function AssessmentAssignForm({
             <h2>Assign Assessment</h2>
 
             <form onSubmit={onAssignAssessment}>
-                <label>Candidate</label>
+                <label htmlFor="assign-candidate">Candidate</label>
                 <select
+                    id="assign-candidate"
                     name="candidateId"
                     value={assignForm.candidateId}
                     onChange={onAssignChange}
@@ -26,8 +27,9 @@ function AssessmentAssignForm({
                     ))}
                 </select>
 
-                <label>Assessment</label>
+                <label htmlFor="assign-assessment">Assessment</label>
                 <select
+                    id="assign-assessment"
                     name="assessmentId"
                     value={assignForm.assessmentId}
                     onChange={onAssignChange}
@@ -43,8 +45,9 @@ function AssessmentAssignForm({
 
                 <div className="two-column-form">
                     <div>
-                        <label>Due Date</label>
+                        <label htmlFor="assign-due-at">Due Date</label>
                         <input
+                            id="assign-due-at"
                             name="dueAt"
                             type="datetime-local"
                             value={assignForm.dueAt}
@@ -53,8 +56,9 @@ function AssessmentAssignForm({
                     </div>
 
                     <div>
-                        <label>Time Limit</label>
+                        <label htmlFor="assign-time-limit">Time Limit</label>
                         <input
+                            id="assign-time-limit"
                             name="timeLimitMinutes"
                             type="number"
                             min="1"
