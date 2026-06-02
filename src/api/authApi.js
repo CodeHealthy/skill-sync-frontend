@@ -35,6 +35,10 @@ export const authApi = {
         return axiosClient.post("/auth/oauth/exchange", payload);
     },
 
+    completeOrganizationSetup: (payload) => {
+        return axiosClient.post("/auth/organization/setup", payload);
+    },
+
     getInvite: (token) => {
         return axiosClient.get("/auth/invite", {
             params: { token },

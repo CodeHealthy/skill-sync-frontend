@@ -27,6 +27,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AcceptInvitePage from "./pages/AcceptInvitePage";
 import AcceptTeamInvitePage from "./pages/AcceptTeamInvitePage";
+import OrganizationSetupPage from "./pages/OrganizationSetupPage";
 
 import OAuthSuccessPage from "./pages/OAuthSuccessPage";
 
@@ -49,6 +50,7 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
 
           <Route element={<ProtectedRoute />}>
+            <Route path="/organization-setup" element={<OrganizationSetupPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route element={<RoleRoute allowedRoles={PLATFORM_ADMIN_ROLES} />}>
               <Route path="/super-admin" element={<SuperAdminDashboard />} />

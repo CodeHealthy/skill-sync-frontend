@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import {
-    getDashboardPathForRole,
+    getPostAuthPathForUser,
     isOrgStaffRole,
     isPlatformAdminRole,
 } from "../../utils/roleUtils";
@@ -14,7 +14,7 @@ function Navbar() {
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const userMenuRef = useRef(null);
 
-    const dashboardPath = getDashboardPathForRole(user?.role);
+    const dashboardPath = getPostAuthPathForUser(user);
     const dashboardLabel = isPlatformAdminRole(user?.role)
         ? "Super Admin"
         : isOrgStaffRole(user?.role)

@@ -35,3 +35,18 @@ export function getDashboardPathForRole(role) {
 
     return "/";
 }
+
+export function requiresOrganizationSetup(user) {
+    return Boolean(
+        user?.requiresOrganizationSetup ||
+        (user?.role === "ORG_ADMIN" && !user?.organizationId)
+    );
+}
+
+export function getPostAuthPathForUser(user) {
+    if (requiresOrganizationSetup(user)) {
+        return "/organization-setup";
+    }
+
+    return getDashboardPathForRole(user?.role);
+}

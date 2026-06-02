@@ -5,7 +5,8 @@ import { useAuth } from "../auth/AuthContext";
 import { getApiErrorMessage } from "../utils/errorUtils";
 import { getPasswordChecks, isStrongPassword } from "../utils/passwordUtils";
 import { showError, showSuccess, showWarning } from "../utils/toastUtils";
-import { getDashboardPathForRole } from "../utils/roleUtils";
+import { getDashboardPathForRole, getPostAuthPathForUser } from "../utils/roleUtils";
+import { buildGoogleOAuthUrl, OAUTH_FLOWS } from "../utils/oauthUtils";
 
 function AcceptTeamInvitePage() {
     const [searchParams] = useSearchParams();
@@ -14,6 +15,8 @@ function AcceptTeamInvitePage() {
 
     const token = searchParams.get("token");
     const name = searchParams.get("name") || "";
+    const googleOAuthEnabled =
+        process.env.REACT_APP_GOOGLE_OAUTH_ENABLED === "true";
 
     const [invite, setInvite] = useState(null);
     const [loadingInvite, setLoadingInvite] = useState(Boolean(token));
@@ -28,6 +31,16 @@ function AcceptTeamInvitePage() {
     const passwordChecks = useMemo(
         () => getPasswordChecks(formData.password),
         [formData.password]
+    );
+    const googleOAuthUrl = useMemo(
+        () =>
+            token
+                ? buildGoogleOAuthUrl({
+                    flow: OAUTH_FLOWS.TEAM_INVITE,
+                    inviteToken: token,
+                })
+                : "",
+        [token]
     );
 
     useEffect(() => {
@@ -76,7 +89,7 @@ function AcceptTeamInvitePage() {
     }, [token, name]);
 
     if (isAuthenticated) {
-        return <Navigate to={getDashboardPathForRole(user?.role)} replace />;
+        return <Navigate to={getPostAuthPathForUser(user)} replace />;
     }
 
     const handleChange = (event) => {
@@ -134,6 +147,15 @@ function AcceptTeamInvitePage() {
         }
     };
 
+    const handleGoogleInvite = () => {
+        if (!googleOAuthUrl) {
+            showError("Invite token is missing.");
+            return;
+        }
+
+        window.location.href = googleOAuthUrl;
+    };
+
     return (
         <div className="page-container">
             <div className="form-card">
@@ -149,7 +171,25 @@ function AcceptTeamInvitePage() {
                 )}
 
                 {invite && !inviteError && (
-                    <form onSubmit={handleSubmit}>
+                    <>
+                        {googleOAuthEnabled && (
+                            <>
+                                <button
+                                    type="button"
+                                    className="google-auth-button"
+                                    onClick={handleGoogleInvite}
+                                    disabled={loadingInvite || submitting}
+                                >
+                                    Continue with Google
+                                </button>
+
+                                <div className="auth-divider">
+                                    <span>or use email</span>
+                                </div>
+                            </>
+                        )}
+
+                        <form onSubmit={handleSubmit}>
                         <label htmlFor="team-invite-organization">Organization</label>
                         <input
                             id="team-invite-organization"
@@ -227,7 +267,8 @@ function AcceptTeamInvitePage() {
                         >
                             {submitting ? "Accepting..." : "Accept Team Invite"}
                         </button>
-                    </form>
+                        </form>
+                    </>
                 )}
             </div>
         </div>

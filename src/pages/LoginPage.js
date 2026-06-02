@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { authApi } from "../api/authApi";
 import { getApiErrorMessage } from "../utils/errorUtils";
 import { showError, showSuccess, showWarning } from "../utils/toastUtils";
-import { getDashboardPathForRole } from "../utils/roleUtils";
+import { getPostAuthPathForUser } from "../utils/roleUtils";
+import { buildGoogleOAuthUrl, OAUTH_FLOWS } from "../utils/oauthUtils";
 
 function LoginPage() {
     const { login, isAuthenticated, user } = useAuth();
@@ -14,12 +15,10 @@ function LoginPage() {
     const googleOAuthEnabled =
         process.env.REACT_APP_GOOGLE_OAUTH_ENABLED === "true";
 
-    const googleOAuthUrl = useMemo(() => {
-        const apiBaseUrl =
-            process.env.REACT_APP_API_BASE_URL || "http://localhost:8080/api";
-
-        return `${apiBaseUrl.replace(/\/api\/?$/, "")}/oauth2/authorization/google`;
-    }, []);
+    const googleOAuthUrl = useMemo(
+        () => buildGoogleOAuthUrl({ flow: OAUTH_FLOWS.PUBLIC }),
+        []
+    );
 
     const [formData, setFormData] = useState({
         email: "",
@@ -78,7 +77,7 @@ function LoginPage() {
     }, [resendCooldownSeconds]);
 
     if (isAuthenticated) {
-        return <Navigate to={getDashboardPathForRole(user?.role)} replace />;
+        return <Navigate to={getPostAuthPathForUser(user)} replace />;
     }
 
     const handleChange = (event) => {
@@ -121,7 +120,7 @@ function LoginPage() {
                 return;
             }
 
-            navigate(getDashboardPathForRole(authData.role), { replace: true });
+            navigate(getPostAuthPathForUser(authData), { replace: true });
         } catch (err) {
             const message = getApiErrorMessage(err, "Invalid email or password");
 

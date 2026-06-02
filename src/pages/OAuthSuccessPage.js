@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { authApi } from "../api/authApi";
 import { useAuth } from "../auth/AuthContext";
 import { showError, showSuccess } from "../utils/toastUtils";
-import { getDashboardPathForRole } from "../utils/roleUtils";
+import { getPostAuthPathForUser } from "../utils/roleUtils";
 
 function OAuthSuccessPage() {
     const [searchParams] = useSearchParams();
@@ -34,7 +34,7 @@ function OAuthSuccessPage() {
                 updateAuthData(authData);
 
                 showSuccess("Logged in with Google.");
-                navigate(getDashboardPathForRole(authData.role), { replace: true });
+                navigate(getPostAuthPathForUser(authData), { replace: true });
             } catch {
                 if (!cancelled) {
                     showError("Google login failed. Please try again.");

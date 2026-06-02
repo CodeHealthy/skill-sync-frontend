@@ -21,6 +21,8 @@ export function AuthProvider({ children }) {
             fullName: authData.fullName,
             email: authData.email,
             role: authData.role,
+            organizationId: authData.organizationId || null,
+            requiresOrganizationSetup: Boolean(authData.requiresOrganizationSetup),
         };
 
         localStorage.setItem("skillsync_user", JSON.stringify(authUser));

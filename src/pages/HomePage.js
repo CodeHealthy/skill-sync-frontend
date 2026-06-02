@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import {
-    getDashboardPathForRole,
+    getPostAuthPathForUser,
     isOrgStaffRole,
     isPlatformAdminRole,
 } from "../utils/roleUtils";
@@ -9,7 +9,7 @@ import {
 function HomePage() {
     const { user, isAuthenticated } = useAuth();
 
-    const dashboardPath = getDashboardPathForRole(user?.role);
+    const dashboardPath = getPostAuthPathForUser(user);
     const dashboardLabel = isPlatformAdminRole(user?.role)
         ? "Go to Super Admin"
         : isOrgStaffRole(user?.role)

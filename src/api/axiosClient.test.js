@@ -63,6 +63,34 @@ describe("axiosClient", () => {
         expect(seenRequests[1].headers["X-XSRF-TOKEN"]).toBe("csrf-token-123");
     });
 
+    test("uses CSRF token from bootstrap response when cookie is cross-domain", async () => {
+        const seenRequests = [];
+
+        axiosClient.defaults.adapter = jest.fn((config) => {
+            seenRequests.push(config);
+
+            if (config.url === "/auth/csrf") {
+                return successfulResponse(config, {
+                    headerName: "X-XSRF-TOKEN",
+                    token: "response-token-456",
+                });
+            }
+
+            return successfulResponse(config, { saved: true });
+        });
+
+        await axiosClient.post("/auth/login", {
+            email: "admin@example.com",
+            password: "password",
+        });
+
+        expect(seenRequests.map((request) => request.url)).toEqual([
+            "/auth/csrf",
+            "/auth/login",
+        ]);
+        expect(seenRequests[1].headers["X-XSRF-TOKEN"]).toBe("response-token-456");
+    });
+
     test("does not bootstrap CSRF for safe requests", async () => {
         const seenRequests = [];
 

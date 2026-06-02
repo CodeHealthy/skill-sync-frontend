@@ -11,6 +11,7 @@ const axiosClient = axios.create({
 });
 
 let csrfBootstrapPromise = null;
+let csrfTokenValue = null;
 
 function isUnsafeMethod(method) {
     return ["post", "put", "patch", "delete"].includes((method || "get").toLowerCase());
@@ -25,7 +26,7 @@ function getCookie(name) {
 }
 
 async function ensureCsrfToken() {
-    if (getCookie("XSRF-TOKEN")) {
+    if (csrfTokenValue || getCookie("XSRF-TOKEN")) {
         return;
     }
 
@@ -34,6 +35,10 @@ async function ensureCsrfToken() {
             .get("/auth/csrf", {
                 skipAuthRedirect: true,
                 skipCsrf: true,
+            })
+            .then((response) => {
+                csrfTokenValue = response.data?.token || null;
+                return response;
             })
             .finally(() => {
                 csrfBootstrapPromise = null;
@@ -46,7 +51,7 @@ async function ensureCsrfToken() {
 axiosClient.interceptors.request.use(async (config) => {
     if (isUnsafeMethod(config.method) && !config.skipCsrf) {
         await ensureCsrfToken();
-        const csrfToken = getCookie("XSRF-TOKEN");
+        const csrfToken = getCookie("XSRF-TOKEN") || csrfTokenValue;
 
         if (csrfToken) {
             config.headers = config.headers || {};

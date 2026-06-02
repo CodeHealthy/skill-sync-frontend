@@ -5,7 +5,8 @@ import { useAuth } from "../auth/AuthContext";
 import { getApiErrorMessage } from "../utils/errorUtils";
 import { getPasswordChecks, isStrongPassword } from "../utils/passwordUtils";
 import { showError, showSuccess, showWarning } from "../utils/toastUtils";
-import { getDashboardPathForRole } from "../utils/roleUtils";
+import { getPostAuthPathForUser } from "../utils/roleUtils";
+import { buildGoogleOAuthUrl, OAUTH_FLOWS } from "../utils/oauthUtils";
 
 function AcceptInvitePage() {
     const [searchParams] = useSearchParams();
@@ -13,6 +14,8 @@ function AcceptInvitePage() {
     const { isAuthenticated, updateAuthData, user } = useAuth();
 
     const token = searchParams.get("token");
+    const googleOAuthEnabled =
+        process.env.REACT_APP_GOOGLE_OAUTH_ENABLED === "true";
 
     const [invite, setInvite] = useState(null);
     const [loadingInvite, setLoadingInvite] = useState(Boolean(token));
@@ -27,6 +30,16 @@ function AcceptInvitePage() {
     const passwordChecks = useMemo(
         () => getPasswordChecks(formData.password),
         [formData.password]
+    );
+    const googleOAuthUrl = useMemo(
+        () =>
+            token
+                ? buildGoogleOAuthUrl({
+                    flow: OAUTH_FLOWS.CANDIDATE_INVITE,
+                    inviteToken: token,
+                })
+                : "",
+        [token]
     );
 
     useEffect(() => {
@@ -75,7 +88,7 @@ function AcceptInvitePage() {
     }, [token]);
 
     if (isAuthenticated) {
-        return <Navigate to={getDashboardPathForRole(user?.role)} replace />;
+        return <Navigate to={getPostAuthPathForUser(user)} replace />;
     }
 
     const handleChange = (event) => {
@@ -133,6 +146,15 @@ function AcceptInvitePage() {
         }
     };
 
+    const handleGoogleInvite = () => {
+        if (!googleOAuthUrl) {
+            showError("Invite token is missing.");
+            return;
+        }
+
+        window.location.href = googleOAuthUrl;
+    };
+
     return (
         <div className="page-container">
             <div className="form-card">
@@ -166,6 +188,23 @@ function AcceptInvitePage() {
                                 </div>
                             </div>
                         </div>
+
+                        {googleOAuthEnabled && (
+                            <>
+                                <button
+                                    type="button"
+                                    className="google-auth-button"
+                                    onClick={handleGoogleInvite}
+                                    disabled={loadingInvite || submitting}
+                                >
+                                    Continue with Google
+                                </button>
+
+                                <div className="auth-divider">
+                                    <span>or use email</span>
+                                </div>
+                            </>
+                        )}
 
                         <form onSubmit={handleSubmit}>
                             <label htmlFor="candidate-invite-full-name">Full Name</label>

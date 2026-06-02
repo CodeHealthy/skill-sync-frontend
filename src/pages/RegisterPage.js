@@ -4,7 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 import { getApiErrorMessage } from "../utils/errorUtils";
 import { getPasswordChecks, isStrongPassword } from "../utils/passwordUtils";
 import { showError, showWarning } from "../utils/toastUtils";
-import { getDashboardPathForRole } from "../utils/roleUtils";
+import { getPostAuthPathForUser } from "../utils/roleUtils";
 
 function RegisterPage() {
     const { register, isAuthenticated, user } = useAuth();
@@ -26,7 +26,7 @@ function RegisterPage() {
     );
 
     if (isAuthenticated) {
-        return <Navigate to={getDashboardPathForRole(user?.role)} replace />;
+        return <Navigate to={getPostAuthPathForUser(user)} replace />;
     }
 
     const handleChange = (event) => {
