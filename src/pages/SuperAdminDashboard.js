@@ -4,6 +4,8 @@ import { platformAdminApi } from "../api/platformAdminApi";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import AuditLogPanel from "../components/admin/AuditLogPanel";
 import SubscriptionPlanManagementPanel from "../components/superadmin/SubscriptionPlanManagementPanel";
+import PlatformOrganizationManagementPanel from "../components/superadmin/PlatformOrganizationManagementPanel";
+import PlatformUserManagementPanel from "../components/superadmin/PlatformUserManagementPanel";
 import { getApiErrorMessage, isAuthRedirectError } from "../utils/errorUtils";
 import { showError } from "../utils/toastUtils";
 import { useAuth } from "../auth/AuthContext";
@@ -13,7 +15,12 @@ function SuperAdminDashboard() {
     const [activeTab, setActiveTab] = useState("overview");
     const [loading, setLoading] = useState(false);
     const [loadingAuditLogs, setLoadingAuditLogs] = useState(false);
-    const [auditActionFilter, setAuditActionFilter] = useState("");
+    const [auditFilters, setAuditFilters] = useState({
+        action: "",
+        organizationId: "",
+        actorEmail: "",
+        targetType: "",
+    });
     const [auditLogs, setAuditLogs] = useState([]);
     const [summary, setSummary] = useState({
         organizations: [],
@@ -37,13 +44,14 @@ function SuperAdminDashboard() {
         }
     };
 
-    const fetchAuditLogs = useCallback(async (action = "") => {
+    const fetchAuditLogs = useCallback(async (filters = auditFilters) => {
         setLoadingAuditLogs(true);
 
         try {
-            const response = await auditApi.getPlatformLogs(
-                action ? { action } : {}
+            const params = Object.fromEntries(
+                Object.entries(filters).filter(([, value]) => value)
             );
+            const response = await auditApi.getPlatformLogs(params);
 
             setAuditLogs(response.data || []);
         } catch (err) {
@@ -55,15 +63,22 @@ function SuperAdminDashboard() {
         } finally {
             setLoadingAuditLogs(false);
         }
-    }, []);
+    }, [auditFilters]);
 
     useEffect(() => {
         fetchSummary();
     }, []);
 
     useEffect(() => {
-        fetchAuditLogs(auditActionFilter);
-    }, [auditActionFilter, fetchAuditLogs]);
+        fetchAuditLogs(auditFilters);
+    }, [auditFilters, fetchAuditLogs]);
+
+    const updateAuditFilter = (name, value) => {
+        setAuditFilters((current) => ({
+            ...current,
+            [name]: value,
+        }));
+    };
 
     const tabs = [
         {
@@ -153,10 +168,33 @@ function SuperAdminDashboard() {
             ),
         },
         {
+            id: "organizations",
+            label: "Organizations",
+            icon: "overview",
+            content: (
+                <PlatformOrganizationManagementPanel
+                    organizations={summary.organizations}
+                    onRefresh={fetchSummary}
+                />
+            ),
+        },
+        {
             id: "plans",
             label: "Plans",
             icon: "billing",
             content: <SubscriptionPlanManagementPanel />,
+        },
+        {
+            id: "users",
+            label: "Users",
+            icon: "candidates",
+            content: (
+                <PlatformUserManagementPanel
+                    users={summary.users}
+                    organizations={summary.organizations}
+                    onRefresh={fetchSummary}
+                />
+            ),
         },
         {
             id: "audit",
@@ -168,9 +206,10 @@ function SuperAdminDashboard() {
                     eyebrow="Super Admin"
                     logs={auditLogs}
                     loading={loadingAuditLogs}
-                    actionFilter={auditActionFilter}
-                    onActionFilterChange={setAuditActionFilter}
-                    onRefresh={() => fetchAuditLogs(auditActionFilter)}
+                    filters={auditFilters}
+                    organizations={summary.organizations}
+                    onFilterChange={updateAuditFilter}
+                    onRefresh={() => fetchAuditLogs(auditFilters)}
                     platform
                 />
             ),

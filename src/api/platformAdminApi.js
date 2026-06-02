@@ -20,4 +20,12 @@ export const platformAdminApi = {
     deactivateSubscriptionPlan: (planId) => {
         return axiosClient.post(`/platform-admin/subscription-plans/${planId}/deactivate`);
     },
+
+    updateOrganization: (organizationId, payload) => {
+        return axiosClient.patch(`/platform-admin/organizations/${organizationId}`, payload);
+    },
+
+    updateUser: (userId, payload) => {
+        return axiosClient.patch(`/platform-admin/users/${userId}`, payload);
+    },
 };

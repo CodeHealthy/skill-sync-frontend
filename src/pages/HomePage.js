@@ -114,7 +114,7 @@ function HomePage() {
 
                 <div className="landing-feature-grid">
                     <div className="landing-feature-card">
-                        <div className="feature-icon">🏢</div>
+                        <div className="feature-icon" aria-hidden="true">Org</div>
                         <h3>Organization Workspaces</h3>
                         <p>
                             Keep candidates, assessments, assignments, and results
@@ -123,7 +123,7 @@ function HomePage() {
                     </div>
 
                     <div className="landing-feature-card">
-                        <div className="feature-icon">💻</div>
+                        <div className="feature-icon" aria-hidden="true">Code</div>
                         <h3>Coding Challenges</h3>
                         <p>
                             Support Java, JavaScript, and Python submissions with
@@ -132,7 +132,7 @@ function HomePage() {
                     </div>
 
                     <div className="landing-feature-card">
-                        <div className="feature-icon">📊</div>
+                        <div className="feature-icon" aria-hidden="true">Score</div>
                         <h3>Results & Grading</h3>
                         <p>
                             Review submitted answers, execution output, errors, scores,
@@ -141,7 +141,7 @@ function HomePage() {
                     </div>
 
                     <div className="landing-feature-card">
-                        <div className="feature-icon">🔐</div>
+                        <div className="feature-icon" aria-hidden="true">Auth</div>
                         <h3>Secure Access</h3>
                         <p>
                             Role-based access keeps admin and candidate workflows
