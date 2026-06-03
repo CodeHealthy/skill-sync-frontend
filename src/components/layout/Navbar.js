@@ -83,6 +83,9 @@ function Navbar() {
                             <a href="/#candidates" className="navbar-link" onClick={closeMenu}>
                                 Candidates
                             </a>
+                            <NavLink to="/about" className="navbar-link" onClick={closeMenu}>
+                                About
+                            </NavLink>
                             <NavLink to="/pricing" className="navbar-link" onClick={closeMenu}>
                                 Pricing
                             </NavLink>

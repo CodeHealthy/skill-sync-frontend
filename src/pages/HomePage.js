@@ -198,6 +198,21 @@ function HomePage() {
                 </div>
             </section>
 
+            <section className="landing-about-band">
+                <div>
+                    <span className="eyebrow">About the Builder</span>
+                    <h2>SkillSync is built by Muhammad Yeshar.</h2>
+                    <p>
+                        A software developer focused on SaaS workflows, secure
+                        authentication, code execution, and practical hiring tools.
+                    </p>
+                </div>
+
+                <Link to="/about" className="secondary-link">
+                    Read About SkillSync
+                </Link>
+            </section>
+
             <section className="landing-final-cta">
                 <div>
                     <span className="eyebrow">Ready to build better assessments?</span>

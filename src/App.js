@@ -12,6 +12,7 @@ import { ORG_STAFF_ROLES, PLATFORM_ADMIN_ROLES } from "./utils/roleUtils";
 import Navbar from "./components/layout/Navbar";
 
 import HomePage from "./pages/HomePage";
+import AboutPage from "./pages/AboutPage";
 import PricingPage from "./pages/PricingPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -39,6 +40,7 @@ function App() {
 
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/about" element={<AboutPage />} />
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/accept-invite" element={<AcceptInvitePage />} />
