@@ -4311,6 +4311,243 @@ pre,
   flex-wrap: wrap;
 }
 
+.invite-page {
+  min-height: calc(100vh - 72px);
+  padding: 48px 32px 64px;
+  background:
+    linear-gradient(135deg, rgba(232, 247, 245, 0.86), rgba(255, 255, 255, 0.52) 42%, rgba(241, 239, 252, 0.55)),
+    var(--color-bg);
+}
+
+.invite-shell {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(420px, 520px);
+  gap: 28px;
+  align-items: start;
+}
+
+.invite-context-panel,
+.invite-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card-soft);
+}
+
+.invite-context-panel {
+  position: sticky;
+  top: 104px;
+  min-height: 520px;
+  padding: 34px;
+  overflow: hidden;
+  background:
+    linear-gradient(145deg, rgba(16, 124, 116, 0.16), rgba(109, 92, 189, 0.12)),
+    #0c1720;
+  color: var(--color-white);
+}
+
+.invite-context-panel::after {
+  content: "";
+  position: absolute;
+  right: -80px;
+  bottom: -90px;
+  width: 260px;
+  height: 260px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+}
+
+.invite-context-panel .eyebrow,
+.invite-card-header .eyebrow {
+  margin: 0 0 12px;
+}
+
+.invite-context-panel .eyebrow {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.invite-context-panel h1 {
+  position: relative;
+  margin: 0;
+  max-width: 520px;
+  color: var(--color-white);
+  font-size: clamp(36px, 4vw, 56px);
+  line-height: 1.02;
+  letter-spacing: 0;
+}
+
+.invite-context-panel p:not(.eyebrow) {
+  position: relative;
+  max-width: 520px;
+  margin: 20px 0 0;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.invite-context-list {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  margin-top: 34px;
+}
+
+.invite-context-list span {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.84);
+  font-weight: 800;
+}
+
+.invite-context-list span::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  box-shadow: 0 0 0 4px rgba(217, 241, 238, 0.12);
+}
+
+.invite-card {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 28px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(14px);
+}
+
+.invite-card-header {
+  margin-bottom: 20px;
+}
+
+.invite-card-header h2 {
+  margin: 0;
+  color: var(--color-text-strong);
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+.invite-card-header p:not(.eyebrow) {
+  margin: 10px 0 0;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}
+
+.invite-summary-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--color-primary-border);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(135deg, rgba(232, 247, 245, 0.88), rgba(255, 255, 255, 0.92)),
+    var(--color-surface);
+}
+
+.invite-summary-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary), #6d5cbd);
+  color: var(--color-white);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.invite-summary-content {
+  min-width: 0;
+}
+
+.invite-summary-content span,
+.invite-summary-status {
+  color: var(--color-text-soft);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.invite-summary-content strong {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--color-text-strong);
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invite-summary-content p {
+  margin: 3px 0 0;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invite-summary-status {
+  padding: 7px 9px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-primary-dark);
+}
+
+.invite-auth-options {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.invite-google-button,
+.invite-submit-button {
+  width: 100%;
+}
+
+.invite-divider span {
+  white-space: nowrap;
+}
+
+.invite-form {
+  margin-top: 18px;
+  gap: 14px;
+}
+
+.invite-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.form-field {
+  display: grid;
+  gap: 7px;
+}
+
+.form-field label {
+  margin-top: 0;
+}
+
+.invite-card input[readonly] {
+  color: var(--color-text-muted);
+  background: var(--color-surface-muted);
+}
+
+.invite-password-checklist {
+  grid-template-columns: 1fr 1fr;
+  margin: 0;
+}
+
 @media (max-width: 900px) {
   .assessment-launch-actions {
     width: 100%;
@@ -4319,6 +4556,39 @@ pre,
   .assessment-launch-actions .primary-button,
   .assessment-launch-actions .secondary-button {
     width: 100%;
+  }
+}
+
+@media (max-width: 980px) {
+  .invite-page {
+    padding: 28px 18px 48px;
+  }
+
+  .invite-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .invite-context-panel {
+    position: relative;
+    top: auto;
+    min-height: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .invite-card,
+  .invite-context-panel {
+    padding: 22px;
+  }
+
+  .invite-summary-card,
+  .invite-form-grid,
+  .invite-password-checklist {
+    grid-template-columns: 1fr;
+  }
+
+  .invite-summary-status {
+    width: fit-content;
   }
 }
 

@@ -48,6 +48,15 @@ async function ensureCsrfToken() {
     await csrfBootstrapPromise;
 }
 
+export function clearClientAuthCookies() {
+    csrfTokenValue = null;
+    csrfBootstrapPromise = null;
+
+    if (typeof document !== "undefined") {
+        document.cookie = "XSRF-TOKEN=; Max-Age=0; path=/";
+    }
+}
+
 axiosClient.interceptors.request.use(async (config) => {
     if (isUnsafeMethod(config.method) && !config.skipCsrf) {
         await ensureCsrfToken();

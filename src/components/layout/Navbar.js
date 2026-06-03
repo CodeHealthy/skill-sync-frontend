@@ -26,8 +26,8 @@ function Navbar() {
         setUserMenuOpen(false);
     };
 
-    const handleLogout = () => {
-        logout();
+    const handleLogout = async () => {
+        await logout();
         closeMenu();
         navigate("/login");
     };

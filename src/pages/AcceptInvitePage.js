@@ -156,10 +156,29 @@ function AcceptInvitePage() {
     };
 
     return (
-        <div className="page-container">
-            <div className="form-card">
-                <h2>Accept Invite</h2>
-                <p>Create your candidate account to continue to your assessment.</p>
+        <div className="invite-page">
+            <section className="invite-shell" aria-labelledby="candidate-invite-title">
+                <div className="invite-context-panel">
+                    <p className="eyebrow">Candidate assessment</p>
+                    <h1>Join your assessment securely.</h1>
+                    <p>
+                        Use the invited email address to create your candidate account.
+                        Your assessment access will be linked automatically after sign up.
+                    </p>
+
+                    <div className="invite-context-list" aria-label="Candidate invite benefits">
+                        <span>Verified invite link</span>
+                        <span>Secure candidate profile</span>
+                        <span>Assessment access after login</span>
+                    </div>
+                </div>
+
+                <div className="form-card invite-card">
+                    <div className="invite-card-header">
+                        <p className="eyebrow">SkillSync invite</p>
+                        <h2 id="candidate-invite-title">Accept your candidate invite</h2>
+                        <p>Create your account to continue to your assessment.</p>
+                    </div>
 
                 {loadingInvite && <div className="info-box">Loading invite...</div>}
 
@@ -171,76 +190,92 @@ function AcceptInvitePage() {
 
                 {invite && !inviteError && (
                     <>
-                        <div className="verification-resend-panel">
-                            <div className="verification-resend-content">
-                                <span className="verification-resend-icon" aria-hidden="true">
-                                    <svg viewBox="0 0 20 20" width="14" height="14">
-                                        <path
-                                            fill="currentColor"
-                                            d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm0 3.5c.46 0 .82.36.82.82v4.36a.82.82 0 0 1-1.64 0V6.32c0-.46.36-.82.82-.82Zm0 9.1a1.05 1.05 0 1 1 0-2.1 1.05 1.05 0 0 1 0 2.1Z"
-                                        />
-                                    </svg>
-                                </span>
+                        <div className="invite-summary-card">
+                            <span className="invite-summary-avatar" aria-hidden="true">
+                                {(invite.organizationName || "SS").slice(0, 2).toUpperCase()}
+                            </span>
 
-                                <div>
-                                    <p>{invite.organizationName || "SkillSync"} invite</p>
-                                    <span>{invite.email}</span>
-                                </div>
+                            <div className="invite-summary-content">
+                                <span>Invited by</span>
+                                <strong>{invite.organizationName || "SkillSync"}</strong>
+                                <p>{invite.email}</p>
                             </div>
+
+                            <span className="invite-summary-status">
+                                Candidate
+                            </span>
                         </div>
 
-                        {googleOAuthEnabled && (
-                            <>
-                                <button
-                                    type="button"
-                                    className="google-auth-button"
-                                    onClick={handleGoogleInvite}
-                                    disabled={loadingInvite || submitting}
-                                >
-                                    Continue with Google
-                                </button>
+                        <div className="invite-auth-options">
+                            {googleOAuthEnabled && (
+                                <>
+                                    <button
+                                        type="button"
+                                        className="google-auth-button invite-google-button"
+                                        onClick={handleGoogleInvite}
+                                        disabled={loadingInvite || submitting}
+                                    >
+                                        <span className="google-auth-icon" aria-hidden="true">
+                                            <svg viewBox="0 0 24 24" width="20" height="20">
+                                                <path fill="#4285F4" d="M22.6 12.2c0-.8-.1-1.6-.2-2.3H12v4.4h5.9c-.3 1.4-1 2.5-2.1 3.3v2.7h3.4c2-1.8 3.4-4.5 3.4-8.1Z" />
+                                                <path fill="#34A853" d="M12 23c2.9 0 5.3-1 7.1-2.7l-3.4-2.7c-.9.6-2.1 1-3.7 1-2.8 0-5.1-1.9-6-4.4H2.5V17c1.8 3.6 5.4 6 9.5 6Z" />
+                                                <path fill="#FBBC05" d="M6 14.2c-.2-.6-.3-1.3-.3-2.2s.1-1.5.3-2.2V7H2.5C1.8 8.5 1.4 10.2 1.4 12s.4 3.5 1.1 5L6 14.2Z" />
+                                                <path fill="#EA4335" d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1C17.3 2.1 14.9 1 12 1 7.9 1 4.3 3.4 2.5 7L6 9.8c.9-2.5 3.2-4.4 6-4.4Z" />
+                                            </svg>
+                                        </span>
+                                        Continue with Google
+                                    </button>
 
-                                <div className="auth-divider">
-                                    <span>or use email</span>
+                                    <div className="auth-divider invite-divider">
+                                        <span>or create a password</span>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        <form className="invite-form" onSubmit={handleSubmit}>
+                            <div className="invite-form-grid">
+                                <div className="form-field">
+                                    <label htmlFor="candidate-invite-full-name">Full Name</label>
+                                    <input
+                                        id="candidate-invite-full-name"
+                                        name="fullName"
+                                        type="text"
+                                        value={formData.fullName}
+                                        onChange={handleChange}
+                                        placeholder="Your full name"
+                                        autoComplete="name"
+                                        required
+                                    />
                                 </div>
-                            </>
-                        )}
 
-                        <form onSubmit={handleSubmit}>
-                            <label htmlFor="candidate-invite-full-name">Full Name</label>
-                            <input
-                                id="candidate-invite-full-name"
-                                name="fullName"
-                                type="text"
-                                value={formData.fullName}
-                                onChange={handleChange}
-                                placeholder="Your full name"
-                                autoComplete="name"
-                                required
-                            />
+                                <div className="form-field">
+                                    <label htmlFor="candidate-invite-email">Email</label>
+                                    <input
+                                        id="candidate-invite-email"
+                                        type="email"
+                                        value={invite.email || ""}
+                                        readOnly
+                                        aria-readonly="true"
+                                    />
+                                </div>
+                            </div>
 
-                            <label htmlFor="candidate-invite-email">Email</label>
-                            <input
-                                id="candidate-invite-email"
-                                type="email"
-                                value={invite.email || ""}
-                                readOnly
-                                aria-readonly="true"
-                            />
+                            <div className="form-field">
+                                <label htmlFor="candidate-invite-password">Password</label>
+                                <input
+                                    id="candidate-invite-password"
+                                    name="password"
+                                    type="password"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    placeholder="Create a strong password"
+                                    autoComplete="new-password"
+                                    required
+                                />
+                            </div>
 
-                            <label htmlFor="candidate-invite-password">Password</label>
-                            <input
-                                id="candidate-invite-password"
-                                name="password"
-                                type="password"
-                                value={formData.password}
-                                onChange={handleChange}
-                                placeholder="Create a strong password"
-                                autoComplete="new-password"
-                                required
-                            />
-
-                            <div className="password-checklist">
+                            <div className="password-checklist invite-password-checklist">
                                 {passwordChecks.map((check) => (
                                     <div
                                         key={check.key}
@@ -256,17 +291,19 @@ function AcceptInvitePage() {
                                 ))}
                             </div>
 
-                            <label htmlFor="candidate-invite-confirm-password">Confirm Password</label>
-                            <input
-                                id="candidate-invite-confirm-password"
-                                name="confirmPassword"
-                                type="password"
-                                value={formData.confirmPassword}
-                                onChange={handleChange}
-                                placeholder="Re-enter your password"
-                                autoComplete="new-password"
-                                required
-                            />
+                            <div className="form-field">
+                                <label htmlFor="candidate-invite-confirm-password">Confirm Password</label>
+                                <input
+                                    id="candidate-invite-confirm-password"
+                                    name="confirmPassword"
+                                    type="password"
+                                    value={formData.confirmPassword}
+                                    onChange={handleChange}
+                                    placeholder="Re-enter your password"
+                                    autoComplete="new-password"
+                                    required
+                                />
+                            </div>
 
                             {formData.confirmPassword && (
                                 <p
@@ -284,7 +321,7 @@ function AcceptInvitePage() {
 
                             <button
                                 type="submit"
-                                className="primary-button"
+                                className="primary-button invite-submit-button"
                                 disabled={submitting}
                             >
                                 {submitting ? "Accepting..." : "Accept Invite"}
@@ -292,7 +329,8 @@ function AcceptInvitePage() {
                         </form>
                     </>
                 )}
-            </div>
+                </div>
+            </section>
         </div>
     );
 }

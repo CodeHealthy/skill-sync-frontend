@@ -1,4 +1,4 @@
-import axiosClient from "./axiosClient";
+import axiosClient, { clearClientAuthCookies } from "./axiosClient";
 
 const originalAdapter = axiosClient.defaults.adapter;
 
@@ -23,6 +23,7 @@ function successfulResponse(config, data = {}) {
 
 describe("axiosClient", () => {
     beforeEach(() => {
+        clearClientAuthCookies();
         clearCookies();
         localStorage.clear();
         sessionStorage.clear();
@@ -103,5 +104,41 @@ describe("axiosClient", () => {
 
         expect(seenRequests).toHaveLength(1);
         expect(seenRequests[0].url).toBe("/profile");
+    });
+
+    test("clears readable CSRF cookie and cached token on logout cleanup", async () => {
+        const seenRequests = [];
+
+        axiosClient.defaults.adapter = jest.fn((config) => {
+            seenRequests.push(config);
+
+            if (config.url === "/auth/csrf") {
+                return successfulResponse(config, {
+                    headerName: "X-XSRF-TOKEN",
+                    token: "cached-token-before-logout",
+                });
+            }
+
+            return successfulResponse(config, { saved: true });
+        });
+
+        await axiosClient.post("/auth/login", {
+            email: "admin@example.com",
+            password: "password",
+        });
+
+        clearClientAuthCookies();
+
+        await axiosClient.post("/auth/login", {
+            email: "admin@example.com",
+            password: "password",
+        });
+
+        expect(seenRequests.map((request) => request.url)).toEqual([
+            "/auth/csrf",
+            "/auth/login",
+            "/auth/csrf",
+            "/auth/login",
+        ]);
     });
 });

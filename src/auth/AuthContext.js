@@ -6,7 +6,7 @@ import {
     useMemo,
     useState,
 } from "react";
-import axiosClient from "../api/axiosClient";
+import axiosClient, { clearClientAuthCookies } from "../api/axiosClient";
 import { authApi } from "../api/authApi";
 
 const AuthContext = createContext(null);
@@ -109,10 +109,14 @@ export function AuthProvider({ children }) {
         []
     );
 
-    const logout = useCallback(() => {
-        authApi.logout().catch(() => {
+    const logout = useCallback(async () => {
+        try {
+            await authApi.logout();
+        } catch {
             // Local logout should still complete if the session is already expired.
-        });
+        }
+
+        clearClientAuthCookies();
         localStorage.removeItem("skillsync_user");
         setUser(null);
     }, []);
