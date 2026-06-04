@@ -5,6 +5,7 @@ import { getApiErrorMessage } from "../utils/errorUtils";
 import { getPasswordChecks, isStrongPassword } from "../utils/passwordUtils";
 import { showError, showWarning } from "../utils/toastUtils";
 import { getPostAuthPathForUser } from "../utils/roleUtils";
+import ImageUploadField from "../components/common/ImageUploadField";
 
 function RegisterPage() {
     const { register, isAuthenticated, user } = useAuth();
@@ -16,6 +17,8 @@ function RegisterPage() {
         password: "",
         confirmPassword: "",
         organizationName: "",
+        profileImageUrl: "",
+        organizationLogoUrl: "",
     });
 
     const [submitting, setSubmitting] = useState(false);
@@ -88,6 +91,8 @@ function RegisterPage() {
             password: formData.password,
             role: "ORG_ADMIN",
             organizationName: formData.organizationName.trim(),
+            profileImageUrl: formData.profileImageUrl,
+            organizationLogoUrl: formData.organizationLogoUrl,
         };
 
         try {
@@ -150,6 +155,32 @@ function RegisterPage() {
                         placeholder="Your organization name"
                         autoComplete="organization"
                         required
+                    />
+
+                    <ImageUploadField
+                        id="register-profile-image"
+                        label="Profile Picture (Optional)"
+                        value={formData.profileImageUrl}
+                        onChange={(value) =>
+                            setFormData((current) => ({
+                                ...current,
+                                profileImageUrl: value,
+                            }))
+                        }
+                        previewName={formData.fullName || "User"}
+                    />
+
+                    <ImageUploadField
+                        id="register-organization-image"
+                        label="Organization Image (Optional)"
+                        value={formData.organizationLogoUrl}
+                        onChange={(value) =>
+                            setFormData((current) => ({
+                                ...current,
+                                organizationLogoUrl: value,
+                            }))
+                        }
+                        previewName={formData.organizationName || "Organization"}
                     />
 
                     <label htmlFor="register-password">Password</label>

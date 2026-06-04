@@ -67,6 +67,7 @@ function AdminDashboard() {
     // ---- Data ----
     const [candidates, setCandidates] = useState([]);
     const [assessments, setAssessments] = useState([]);
+    const [assessmentTemplates, setAssessmentTemplates] = useState([]);
     const [assignments, setAssignments] = useState([]);
     const [teamMembers, setTeamMembers] = useState([]);
     const [pendingTeamInvites, setPendingTeamInvites] = useState([]);
@@ -94,6 +95,7 @@ function AdminDashboard() {
 
     // ---- Loading & Modal States ----
     const [loadingDashboard, setLoadingDashboard] = useState(false);
+    const [loadingAssessmentTemplates, setLoadingAssessmentTemplates] = useState(false);
     const [creatingCandidate, setCreatingCandidate] = useState(false);
     const [creatingAssessment, setCreatingAssessment] = useState(false);
     const [assigningAssessment, setAssigningAssessment] = useState(false);
@@ -157,6 +159,23 @@ function AdminDashboard() {
         }
     };
 
+    const fetchAssessmentTemplates = async () => {
+        setLoadingAssessmentTemplates(true);
+
+        try {
+            const response = await assessmentApi.getAssessmentTemplates();
+            setAssessmentTemplates(response.data || []);
+        } catch (err) {
+            if (isAuthRedirectError(err)) {
+                return;
+            }
+
+            showError(getApiErrorMessage(err, "Failed to load assessment templates"));
+        } finally {
+            setLoadingAssessmentTemplates(false);
+        }
+    };
+
     const fetchAuditLogs = useCallback(async (action = "") => {
         setLoadingAuditLogs(true);
 
@@ -180,6 +199,7 @@ function AdminDashboard() {
     useEffect(() => {
         fetchDashboardData();
         fetchTeamMembers();
+        fetchAssessmentTemplates();
     }, []);
 
     useEffect(() => {
@@ -838,7 +858,9 @@ function AdminDashboard() {
             content: (
                 <CreateAssessmentPanel
                     assessmentForm={assessmentForm}
+                    assessmentTemplates={assessmentTemplates}
                     creatingAssessment={creatingAssessment}
+                    loadingAssessmentTemplates={loadingAssessmentTemplates}
                     canCreateAssessment={canCreateAssessment}
                     canUseAiGeneration={canUseAiGeneration}
                     wizardOpen={assessmentWizardOpen}
@@ -974,6 +996,7 @@ function AdminDashboard() {
                 onTabChange={setActiveTab}
                 userRole="admin"
                 userName={user?.fullName}
+                userImageUrl={user?.profileImageUrl}
                 userTitle="Organization Admin"
             />
 

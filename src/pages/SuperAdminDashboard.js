@@ -223,6 +223,7 @@ function SuperAdminDashboard() {
             onTabChange={setActiveTab}
             userRole="super-admin"
             userName={user?.fullName}
+            userImageUrl={user?.profileImageUrl}
             userTitle="Platform Super Admin"
         />
     );

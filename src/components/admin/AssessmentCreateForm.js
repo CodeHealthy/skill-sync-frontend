@@ -15,7 +15,9 @@ const steps = ["Basics", "Sections", "Review"];
 
 function AssessmentCreateForm({
     assessmentForm,
+    assessmentTemplates = [],
     creatingAssessment,
+    loadingAssessmentTemplates = false,
     canCreateAssessment = true,
     canUseAiGeneration = true,
     wizardOpen,
@@ -197,6 +199,12 @@ function AssessmentCreateForm({
         });
     };
 
+    const applyTemplate = (template) => {
+        patchForm((current) => buildFormFromTemplate(current, template));
+        onWizardStepChange(0);
+        onWizardOpenChange(true);
+    };
+
     return (
         <>
             <div className="form-card compact-form-card assessment-create-launch-card">
@@ -233,6 +241,12 @@ function AssessmentCreateForm({
                         Generate with AI
                     </button>
                 </div>
+
+                <TemplatePicker
+                    templates={assessmentTemplates}
+                    loading={loadingAssessmentTemplates}
+                    onApplyTemplate={applyTemplate}
+                />
             </div>
 
             {wizardOpen && (
@@ -278,6 +292,13 @@ function AssessmentCreateForm({
                                     title="Assessment basics"
                                     subtitle="Set the role, timing, scoring, and publish state."
                                 >
+                                    <TemplatePicker
+                                        templates={assessmentTemplates}
+                                        loading={loadingAssessmentTemplates}
+                                        onApplyTemplate={applyTemplate}
+                                        compact
+                                    />
+
                                     <div className="form-grid">
                                         <label>
                                             Title
@@ -500,6 +521,56 @@ function AssessmentCreateForm({
                 </div>
             )}
         </>
+    );
+}
+
+function TemplatePicker({
+    templates = [],
+    loading = false,
+    onApplyTemplate,
+    compact = false,
+}) {
+    if (loading) {
+        return <div className="info-box">Loading assessment templates...</div>;
+    }
+
+    if (!templates.length) {
+        return (
+            <div className="empty-state assessment-template-empty">
+                <h3>No templates available</h3>
+                <p>Templates are loaded from MongoDB and can be added later by platform tooling.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className={compact ? "assessment-template-picker compact" : "assessment-template-picker"}>
+            <div className="assessment-template-picker-header">
+                <div>
+                    <h3>Start from a template</h3>
+                </div>
+            </div>
+
+            <div className="assessment-template-grid">
+                {templates.map((template) => (
+                    <button
+                        type="button"
+                        className="assessment-template-card"
+                        key={template.id || template.code}
+                        onClick={() => onApplyTemplate(template)}
+                    >
+                        <span>{template.category || "Template"}</span>
+                        <strong>{template.name}</strong>
+                        <p>{template.description}</p>
+                        <small>
+                            {template.durationMinutes ? `${template.durationMinutes} min` : "No limit"}
+                            {" · "}
+                            {template.maxScore || getScoreBreakdown(template.sections || []).total || 100} pts
+                        </small>
+                    </button>
+                ))}
+            </div>
+        </div>
     );
 }
 
@@ -747,6 +818,52 @@ function ReviewItem({ label, value }) {
             <strong>{value || "-"}</strong>
         </div>
     );
+}
+
+function buildFormFromTemplate(current, template) {
+    const sections = normalizeTemplateSections(template?.sections || []);
+    const score = getScoreBreakdown(sections);
+    const firstCodingQuestion = getAssessmentQuestions(sections).find(
+        (question) => question.type === ASSESSMENT_QUESTION_TYPES.CODING_CHALLENGE
+    );
+
+    return {
+        ...current,
+        title: template?.name || current.title,
+        description: template?.description || current.description,
+        roleTitle: template?.roleTitle || current.roleTitle,
+        durationMinutes: template?.durationMinutes || current.durationMinutes,
+        type: template?.type || current.type,
+        language: template?.language || firstCodingQuestion?.language || current.language,
+        maxScore: template?.maxScore || score.total || current.maxScore,
+        prompt: firstCodingQuestion?.prompt || current.prompt,
+        starterCode: firstCodingQuestion?.starterCode || current.starterCode,
+        expectedOutput: firstCodingQuestion?.expectedOutput || current.expectedOutput,
+        testCases: firstCodingQuestion?.testCases || current.testCases,
+        sections: sections.length ? sections : current.sections,
+    };
+}
+
+function normalizeTemplateSections(sections) {
+    return sections.map((section, sectionIndex) => ({
+        ...section,
+        id: `template-section-${Date.now()}-${sectionIndex + 1}`,
+        timeLimitMinutes: section.timeLimitMinutes || "",
+        questions: (section.questions || []).map((question, questionIndex) =>
+            normalizeQuestionPatch(
+                {
+                    ...question,
+                    id: `template-question-${Date.now()}-${sectionIndex + 1}-${questionIndex + 1}`,
+                    options: (question.options || []).map((option, optionIndex) => ({
+                        ...option,
+                        id: `template-option-${Date.now()}-${sectionIndex + 1}-${questionIndex + 1}-${optionIndex + 1}`,
+                    })),
+                    testCases: (question.testCases || []).map((testCase) => ({ ...testCase })),
+                },
+                { type: question.type }
+            )
+        ),
+    }));
 }
 
 export default AssessmentCreateForm;

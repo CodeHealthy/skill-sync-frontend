@@ -7,6 +7,7 @@ import { getPasswordChecks, isStrongPassword } from "../utils/passwordUtils";
 import { showError, showSuccess, showWarning } from "../utils/toastUtils";
 import { getDashboardPathForRole, getPostAuthPathForUser } from "../utils/roleUtils";
 import { buildGoogleOAuthUrl, OAUTH_FLOWS } from "../utils/oauthUtils";
+import ImageUploadField from "../components/common/ImageUploadField";
 
 function AcceptTeamInvitePage() {
     const [searchParams] = useSearchParams();
@@ -25,6 +26,7 @@ function AcceptTeamInvitePage() {
         fullName: name,
         password: "",
         confirmPassword: "",
+        profileImageUrl: "",
     });
     const [submitting, setSubmitting] = useState(false);
 
@@ -135,6 +137,7 @@ function AcceptTeamInvitePage() {
                 token,
                 fullName: formData.fullName.trim(),
                 password: formData.password,
+                profileImageUrl: formData.profileImageUrl,
             });
 
             updateAuthData(response.data);
@@ -193,7 +196,11 @@ function AcceptTeamInvitePage() {
                     <>
                         <div className="invite-summary-card">
                             <span className="invite-summary-avatar" aria-hidden="true">
-                                {(invite.organizationName || "SS").slice(0, 2).toUpperCase()}
+                                {invite.organizationLogoUrl ? (
+                                    <img src={invite.organizationLogoUrl} alt="" />
+                                ) : (
+                                    (invite.organizationName || "SS").slice(0, 2).toUpperCase()
+                                )}
                             </span>
 
                             <div className="invite-summary-content">
@@ -285,6 +292,19 @@ function AcceptTeamInvitePage() {
                                     />
                                 </div>
                             </div>
+
+                            <ImageUploadField
+                                id="team-invite-profile-image"
+                                label="Profile Picture (Optional)"
+                                value={formData.profileImageUrl}
+                                onChange={(value) =>
+                                    setFormData((current) => ({
+                                        ...current,
+                                        profileImageUrl: value,
+                                    }))
+                                }
+                                previewName={formData.fullName || invite.email || "Team member"}
+                            />
 
                             <div className="form-field">
                                 <label htmlFor="team-invite-password">Password</label>

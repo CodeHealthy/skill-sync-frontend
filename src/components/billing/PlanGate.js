@@ -1,4 +1,7 @@
-import { Link } from "react-router-dom";
+import { showInfo } from "../../utils/toastUtils";
+
+const SUBSCRIPTIONS_UNAVAILABLE_MESSAGE =
+    "Subscriptions are currently unavailable. You can continue using the free workspace while billing is being prepared.";
 
 function PlanGate({ allowed, title, message, children }) {
     if (allowed) {
@@ -12,9 +15,13 @@ function PlanGate({ allowed, title, message, children }) {
                 {message ||
                     "This workspace has reached its current plan limit. Upgrade to keep going."}
             </p>
-            <Link to="/pricing" className="primary-link">
+            <button
+                type="button"
+                className="primary-button"
+                onClick={() => showInfo(SUBSCRIPTIONS_UNAVAILABLE_MESSAGE)}
+            >
                 View Plans
-            </Link>
+            </button>
         </div>
     );
 }

@@ -419,6 +419,7 @@ function CandidateDashboard() {
             onTabChange={setActiveTab}
             userRole="candidate"
             userName={user?.fullName}
+            userImageUrl={user?.profileImageUrl}
             userTitle="Candidate"
         />
     );

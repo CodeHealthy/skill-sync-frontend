@@ -50,7 +50,7 @@ function Navbar() {
         <nav className="navbar">
             <div className="navbar-top-row">
                 <Link to="/" className="navbar-brand" onClick={closeMenu}>
-                    <img src="/logo-white.svg" alt="SkillSync" className="navbar-logo-image" />
+                    <img src="/favicon.svg" alt="SkillSync" className="navbar-logo-image" /> <span className="navbar-logo-text">SkillSync</span>
                 </Link>
 
                 <button
@@ -135,7 +135,11 @@ function Navbar() {
                                 aria-expanded={userMenuOpen}
                             >
                                 <span className="navbar-avatar">
-                                    {user?.fullName?.charAt(0)?.toUpperCase() || "U"}
+                                    {user?.profileImageUrl ? (
+                                        <img src={user.profileImageUrl} alt="" />
+                                    ) : (
+                                        user?.fullName?.charAt(0)?.toUpperCase() || "U"
+                                    )}
                                 </span>
                                 <span className="navbar-user-text">
                                     {user?.fullName}

@@ -3,14 +3,14 @@ import { billingApi } from "../../api/billingApi";
 import { PLAN_IDS } from "../../constants/plans";
 import { getApiErrorMessage } from "../../utils/errorUtils";
 import { formatBillingCycle, formatPlanPrice, getPlanId, normalizePlan } from "../../utils/planUtils";
-import { showError } from "../../utils/toastUtils";
+import { showError, showInfo } from "../../utils/toastUtils";
 
-const billingEnabled = process.env.REACT_APP_BILLING_ENABLED === "true";
+const SUBSCRIPTIONS_UNAVAILABLE_MESSAGE =
+    "Subscriptions are currently unavailable. You can continue using the free workspace while billing is being prepared.";
 
-function PlanCards({ currentPlanId = PLAN_IDS.FREE, authenticated = false, plans: providedPlans }) {
+function PlanCards({ currentPlanId = PLAN_IDS.FREE, plans: providedPlans }) {
     const [plans, setPlans] = useState(providedPlans || []);
     const [loadingPlans, setLoadingPlans] = useState(!providedPlans);
-    const [loadingPlanId, setLoadingPlanId] = useState(null);
 
     useEffect(() => {
         if (providedPlans) {
@@ -56,36 +56,7 @@ function PlanCards({ currentPlanId = PLAN_IDS.FREE, authenticated = false, plans
             return;
         }
 
-        if (!authenticated) {
-            window.location.href = "/register";
-            return;
-        }
-
-        if (!billingEnabled) {
-            showError("Billing is not enabled yet. Configure Stripe keys and enable billing in the backend.");
-            return;
-        }
-
-        setLoadingPlanId(planId);
-
-        try {
-            const response = await billingApi.createCheckoutSession({
-                planId,
-                successUrl: `${window.location.origin}/admin?billing=success`,
-                cancelUrl: `${window.location.origin}/pricing`,
-            });
-
-            if (response.data?.url) {
-                window.location.href = response.data.url;
-                return;
-            }
-
-            showError("Checkout session did not return a redirect URL.");
-        } catch (err) {
-            showError(getApiErrorMessage(err, "Unable to start checkout"));
-        } finally {
-            setLoadingPlanId(null);
-        }
+        showInfo(SUBSCRIPTIONS_UNAVAILABLE_MESSAGE);
     };
 
     if (loadingPlans) {
@@ -107,7 +78,6 @@ function PlanCards({ currentPlanId = PLAN_IDS.FREE, authenticated = false, plans
                 const plan = normalizePlan(rawPlan);
                 const planId = getPlanId(plan);
                 const current = currentPlanId === planId;
-                const isLoading = loadingPlanId === planId;
 
                 return (
                     <article
@@ -134,13 +104,11 @@ function PlanCards({ currentPlanId = PLAN_IDS.FREE, authenticated = false, plans
                             type="button"
                             className={current ? "secondary-button" : "primary-button"}
                             onClick={() => handlePlanAction(plan)}
-                            disabled={current || isLoading}
+                            disabled={current}
                         >
                             {current
                                 ? "Current Plan"
-                                : isLoading
-                                  ? "Opening..."
-                                  : "Choose Plan"}
+                                : "Choose Plan"}
                         </button>
                     </article>
                 );

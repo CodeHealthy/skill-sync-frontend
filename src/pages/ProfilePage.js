@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { profileApi } from "../api/profileApi";
+import { isOrgStaffRole } from "../utils/roleUtils";
 import { getApiErrorMessage } from "../utils/errorUtils";
 import { getPasswordChecks, isStrongPassword } from "../utils/passwordUtils";
 import { showError, showSuccess, showWarning } from "../utils/toastUtils";
+import ImageUploadField from "../components/common/ImageUploadField";
 
 function ProfilePage() {
     const { user, updateAuthData } = useAuth();
@@ -12,6 +14,8 @@ function ProfilePage() {
         fullName: user?.fullName || "",
         email: user?.email || "",
         role: user?.role || "",
+        profileImageUrl: user?.profileImageUrl || "",
+        organizationLogoUrl: user?.organizationLogoUrl || "",
     });
 
     const [passwordForm, setPasswordForm] = useState({
@@ -59,6 +63,8 @@ function ProfilePage() {
         try {
             const response = await profileApi.updateProfile({
                 fullName: profileForm.fullName.trim(),
+                profileImageUrl: profileForm.profileImageUrl.trim(),
+                organizationLogoUrl: profileForm.organizationLogoUrl.trim(),
             });
 
             updateAuthData(response.data);
@@ -130,8 +136,8 @@ function ProfilePage() {
                 <div className="form-card compact-form-card">
                     <h2>Profile Information</h2>
                     <p className="small-text">
-                        Update your display name. Email changes require verification and
-                        are not available yet.
+                        Update your display name and public profile image. Email changes
+                        require verification and are not available yet.
                     </p>
 
                     <form onSubmit={handleProfileSubmit}>
@@ -160,6 +166,34 @@ function ProfilePage() {
                             value={profileForm.role}
                             disabled
                         />
+
+                        <ImageUploadField
+                            id="profile-image"
+                            label="Profile Picture (Optional)"
+                            value={profileForm.profileImageUrl}
+                            onChange={(value) =>
+                                setProfileForm((current) => ({
+                                    ...current,
+                                    profileImageUrl: value,
+                                }))
+                            }
+                            previewName={profileForm.fullName || "User"}
+                        />
+
+                        {isOrgStaffRole(profileForm.role) && (
+                            <ImageUploadField
+                                id="organization-logo"
+                                label="Organization Image (Optional)"
+                                value={profileForm.organizationLogoUrl}
+                                onChange={(value) =>
+                                    setProfileForm((current) => ({
+                                        ...current,
+                                        organizationLogoUrl: value,
+                                    }))
+                                }
+                                previewName="Organization"
+                            />
+                        )}
 
                         <button
                             type="submit"

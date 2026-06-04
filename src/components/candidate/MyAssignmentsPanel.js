@@ -98,6 +98,10 @@ function AssignmentLaunchCard({ assignment }) {
     return (
         <div className="candidate-launch-card">
             <div className="candidate-launch-header">
+                <OrganizationLogo
+                    imageUrl={assignment.organizationLogoUrl}
+                    name={assignment.organizationName}
+                />
                 <div>
                     <p className="eyebrow">{assignment.organizationName || "Organization"}</p>
                     <h2>{assignment.assessmentTitle}</h2>
@@ -135,6 +139,16 @@ function AssignmentLaunchCard({ assignment }) {
                 )}
             </div>
         </div>
+    );
+}
+
+function OrganizationLogo({ imageUrl, name }) {
+    const initials = (name || "SS").slice(0, 2).toUpperCase();
+
+    return (
+        <span className="candidate-organization-logo large" aria-hidden="true">
+            {imageUrl ? <img src={imageUrl} alt="" /> : initials}
+        </span>
     );
 }
 

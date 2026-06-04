@@ -94,6 +94,7 @@ function DashboardLayout({
     userRole, // "admin" or "candidate"
     userName,
     userTitle,
+    userImageUrl,
 }) {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -138,11 +139,15 @@ function DashboardLayout({
                 <div className="sidebar-header">
                     <div className="sidebar-user-info">
                         <div className="sidebar-user-avatar">
-                            {userName
-                                ?.split(" ")
-                                .map((n) => n[0])
-                                .join("")
-                                .toUpperCase() || "U"}
+                            {userImageUrl ? (
+                                <img src={userImageUrl} alt="" />
+                            ) : (
+                                userName
+                                    ?.split(" ")
+                                    .map((n) => n[0])
+                                    .join("")
+                                    .toUpperCase() || "U"
+                            )}
                         </div>
                         <div className="sidebar-user-details">
                             <p className="sidebar-user-name">{userName || "User"}</p>

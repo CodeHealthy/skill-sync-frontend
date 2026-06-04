@@ -5,6 +5,10 @@ export const assessmentApi = {
         return axiosClient.get("/assessments");
     },
 
+    getAssessmentTemplates: () => {
+        return axiosClient.get("/assessment-templates");
+    },
+
     createAssessment: (payload) => {
         return axiosClient.post("/assessments", payload);
     },

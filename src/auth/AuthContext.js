@@ -22,6 +22,8 @@ export function AuthProvider({ children }) {
             email: authData.email,
             role: authData.role,
             organizationId: authData.organizationId || null,
+            profileImageUrl: authData.profileImageUrl || null,
+            organizationLogoUrl: authData.organizationLogoUrl || null,
             requiresOrganizationSetup: Boolean(authData.requiresOrganizationSetup),
         };
 
@@ -95,13 +97,23 @@ export function AuthProvider({ children }) {
     );
 
     const register = useCallback(
-        async ({ fullName, email, password, role, organizationName }) => {
+        async ({
+            fullName,
+            email,
+            password,
+            role,
+            organizationName,
+            profileImageUrl,
+            organizationLogoUrl,
+        }) => {
             const response = await axiosClient.post("/auth/register", {
                 fullName,
                 email,
                 password,
                 role,
                 organizationName,
+                profileImageUrl,
+                organizationLogoUrl,
             });
 
             return response.data;

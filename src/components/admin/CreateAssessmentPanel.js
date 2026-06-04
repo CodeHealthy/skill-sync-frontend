@@ -5,7 +5,9 @@ import "../../css/DashboardPanels.css";
 
 function CreateAssessmentPanel({
     assessmentForm,
+    assessmentTemplates,
     creatingAssessment,
+    loadingAssessmentTemplates,
     canCreateAssessment,
     canUseAiGeneration,
     wizardOpen,
@@ -42,7 +44,9 @@ function CreateAssessmentPanel({
             <div className="dashboard-panel-grid dashboard-panel-grid-equal">
                 <AssessmentCreateForm
                     assessmentForm={assessmentForm}
+                    assessmentTemplates={assessmentTemplates}
                     creatingAssessment={creatingAssessment}
+                    loadingAssessmentTemplates={loadingAssessmentTemplates}
                     canCreateAssessment={canCreateAssessment}
                     canUseAiGeneration={canUseAiGeneration}
                     wizardOpen={wizardOpen}

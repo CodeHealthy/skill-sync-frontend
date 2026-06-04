@@ -46,7 +46,13 @@ function AssignmentList({
                         onClick={() => onSelectAssignment(assignment.id)}
                     >
                         <div className="assessment-list-top">
-                            <strong>{assignment.assessmentTitle}</strong>
+                            <div className="assessment-list-brand">
+                                <OrganizationLogo
+                                    imageUrl={assignment.organizationLogoUrl}
+                                    name={assignment.organizationName}
+                                />
+                                <strong>{assignment.assessmentTitle}</strong>
+                            </div>
                             <StatusBadge value={assignment.status} />
                         </div>
 
@@ -69,6 +75,16 @@ function AssignmentList({
                 onPageChange={onPageChange}
             />
         </>
+    );
+}
+
+function OrganizationLogo({ imageUrl, name }) {
+    const initials = (name || "SS").slice(0, 2).toUpperCase();
+
+    return (
+        <span className="candidate-organization-logo" aria-hidden="true">
+            {imageUrl ? <img src={imageUrl} alt="" /> : initials}
+        </span>
     );
 }
 

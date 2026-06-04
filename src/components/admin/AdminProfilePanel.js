@@ -5,7 +5,7 @@ function AdminProfilePanel({ user }) {
     return (
         <div className="profile-panel">
             <div className="profile-card">
-                <ProfileAvatar name={user?.fullName} />
+                <ProfileAvatar name={user?.fullName} imageUrl={user?.profileImageUrl} />
 
                 <div className="profile-card-content">
                     <p className="eyebrow">Organization Admin</p>
@@ -31,7 +31,7 @@ function AdminProfilePanel({ user }) {
     );
 }
 
-function ProfileAvatar({ name }) {
+function ProfileAvatar({ name, imageUrl }) {
     const initials = (name || "Admin User")
         .split(" ")
         .map((part) => part[0])
@@ -39,7 +39,11 @@ function ProfileAvatar({ name }) {
         .slice(0, 2)
         .toUpperCase();
 
-    return <div className="profile-avatar-large">{initials}</div>;
+    return (
+        <div className="profile-avatar-large">
+            {imageUrl ? <img src={imageUrl} alt="" /> : initials}
+        </div>
+    );
 }
 
 function ProfileDetail({ label, value }) {

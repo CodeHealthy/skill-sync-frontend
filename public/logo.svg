@@ -1,17 +1,57 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 72" role="img" aria-label="SkillSync logo">
+<svg width="1400" height="520" viewBox="0 0 1400 520" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="skillsyncLogoGradient" x1="10" y1="8" x2="54" y2="58" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#D6EBFF"/>
-      <stop offset="42%" stop-color="#1F618D"/>
-      <stop offset="100%" stop-color="#154360"/>
+    <linearGradient id="g1" x1="120" y1="80" x2="460" y2="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#00E0FF"/>
+      <stop offset="0.52" stop-color="#5B6CFF"/>
+      <stop offset="1" stop-color="#8A2BE2"/>
     </linearGradient>
-    <filter id="logoShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#0F172A" flood-opacity="0.16"/>
+    <linearGradient id="g2" x1="690" y1="132" x2="1170" y2="390" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#101828"/>
+      <stop offset="1" stop-color="#344054"/>
+    </linearGradient>
+    <filter id="shadow" x="40" y="20" width="500" height="500" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="22" stdDeviation="24" flood-color="#334155" flood-opacity="0.20"/>
+    </filter>
+    <filter id="glow" x="50" y="50" width="480" height="420" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
   </defs>
-  <rect x="8" y="10" width="52" height="52" rx="18" fill="url(#skillsyncLogoGradient)" filter="url(#logoShadow)"/>
-  <path d="M44.5 25C41.8 22.4 38.2 21.2 33.9 21.2C27.8 21.2 23.6 24.1 23.6 28.5C23.6 33.1 27.8 34.5 33 35.6C38.2 36.7 40.8 37.5 40.8 40.2C40.8 42.7 38.2 44.2 34.2 44.2C30.2 44.2 26.9 42.7 24.2 40" fill="none" stroke="#FFFFFF" stroke-width="4.6" stroke-linecap="round"/>
-  <path d="M23 49.2L28.1 54L45.9 36" fill="none" stroke="#FFFFFF" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M47 20.5H51.4V24.9" fill="none" stroke="#FFFFFF" stroke-width="3.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.88"/>
-  <text x="76" y="45" fill="#17202A" font-size="32" font-family="Arial, Helvetica, sans-serif" font-weight="800" letter-spacing="-1.2">SkillSync</text>
+
+  <g filter="url(#shadow)">
+    <path d="M290 54L453 148V336L290 430L127 336V148L290 54Z" fill="white"/>
+    <path d="M290 74L436 158V326L290 410L144 326V158L290 74Z" fill="url(#g1)" opacity="0.95"/>
+  </g>
+
+  <g filter="url(#glow)" stroke="white" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M205 250C237 211 273 195 313 203C353 211 378 237 395 282"/>
+    <path d="M203 250L271 326L390 186"/>
+  </g>
+
+  <circle cx="203" cy="250" r="26" fill="white"/>
+  <circle cx="203" cy="250" r="12" fill="#5B6CFF"/>
+  <circle cx="271" cy="326" r="26" fill="white"/>
+  <circle cx="271" cy="326" r="12" fill="#00BCEB"/>
+  <circle cx="390" cy="186" r="26" fill="white"/>
+  <circle cx="390" cy="186" r="12" fill="#7C3AED"/>
+
+  <g stroke="white" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity="0.92">
+    <path d="M238 154C274 129 323 129 360 154"/>
+    <path d="M355 127L371 162L333 164"/>
+    <path d="M342 356C305 382 255 381 219 354"/>
+    <path d="M225 382L209 347L247 345"/>
+  </g>
+
+  <text x="565" y="232" font-family="Inter, Arial, sans-serif" font-size="92" font-weight="850" letter-spacing="-3" fill="url(#g2)">Skill Sync</text>
+  <text x="570" y="307" font-family="Inter, Arial, sans-serif" font-size="38" font-weight="650" letter-spacing="3.2" fill="#5B6CFF">SKILL VALIDATOR APP</text>
+
+  <rect x="570" y="342" width="465" height="10" rx="5" fill="url(#g1)"/>
+  <circle cx="1062" cy="347" r="10" fill="#00E0FF"/>
+  <circle cx="1100" cy="347" r="10" fill="#5B6CFF"/>
+  <circle cx="1138" cy="347" r="10" fill="#8A2BE2"/>
+
+  <text x="570" y="405" font-family="Inter, Arial, sans-serif" font-size="31" font-weight="500" fill="#667085">Assess • Validate • Sync talent with skills</text>
 </svg>

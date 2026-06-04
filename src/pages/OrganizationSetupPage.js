@@ -8,11 +8,14 @@ import {
     requiresOrganizationSetup,
 } from "../utils/roleUtils";
 import { showError, showSuccess, showWarning } from "../utils/toastUtils";
+import ImageUploadField from "../components/common/ImageUploadField";
 
 function OrganizationSetupPage() {
     const { user, updateAuthData } = useAuth();
     const navigate = useNavigate();
     const [organizationName, setOrganizationName] = useState("");
+    const [profileImageUrl, setProfileImageUrl] = useState(user?.profileImageUrl || "");
+    const [organizationLogoUrl, setOrganizationLogoUrl] = useState(user?.organizationLogoUrl || "");
     const [submitting, setSubmitting] = useState(false);
 
     if (!requiresOrganizationSetup(user)) {
@@ -43,6 +46,8 @@ function OrganizationSetupPage() {
         try {
             const response = await authApi.completeOrganizationSetup({
                 organizationName: normalizedName,
+                profileImageUrl,
+                organizationLogoUrl,
             });
             const authData = response.data;
 
@@ -74,6 +79,22 @@ function OrganizationSetupPage() {
                         autoComplete="organization"
                         maxLength={120}
                         required
+                    />
+
+                    <ImageUploadField
+                        id="organization-setup-profile-image"
+                        label="Profile Picture (Optional)"
+                        value={profileImageUrl}
+                        onChange={setProfileImageUrl}
+                        previewName={user?.fullName || "User"}
+                    />
+
+                    <ImageUploadField
+                        id="organization-setup-logo"
+                        label="Organization Image (Optional)"
+                        value={organizationLogoUrl}
+                        onChange={setOrganizationLogoUrl}
+                        previewName={organizationName || "Organization"}
                     />
 
                     <button

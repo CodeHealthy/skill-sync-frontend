@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { billingApi } from "../../api/billingApi";
 import PlanCards from "../billing/PlanCards";
 import UsageLimitBanner from "../billing/UsageLimitBanner";
-import { getApiErrorMessage } from "../../utils/errorUtils";
-import { showError } from "../../utils/toastUtils";
+import { showInfo } from "../../utils/toastUtils";
 import "../../css/DashboardPanels.css";
+
+const SUBSCRIPTIONS_UNAVAILABLE_MESSAGE =
+    "Subscriptions are currently unavailable. You can continue using the free workspace while billing is being prepared.";
 
 function BillingSettingsPanel({
     plan,
@@ -15,25 +15,8 @@ function BillingSettingsPanel({
     loading,
     onRefresh,
 }) {
-    const [openingPortal, setOpeningPortal] = useState(false);
-
-    const openCustomerPortal = async () => {
-        setOpeningPortal(true);
-
-        try {
-            const response = await billingApi.createCustomerPortalSession();
-
-            if (response.data?.url) {
-                window.location.href = response.data.url;
-                return;
-            }
-
-            showError("Billing portal did not return a redirect URL.");
-        } catch (err) {
-            showError(getApiErrorMessage(err, "Unable to open billing portal"));
-        } finally {
-            setOpeningPortal(false);
-        }
+    const showSubscriptionsUnavailable = () => {
+        showInfo(SUBSCRIPTIONS_UNAVAILABLE_MESSAGE);
     };
 
     return (
@@ -63,10 +46,9 @@ function BillingSettingsPanel({
                     <button
                         type="button"
                         className="primary-button"
-                        onClick={openCustomerPortal}
-                        disabled={openingPortal}
+                        onClick={showSubscriptionsUnavailable}
                     >
-                        {openingPortal ? "Opening..." : "Manage Billing"}
+                        Manage Billing
                     </button>
                 </div>
             </section>
@@ -84,7 +66,7 @@ function BillingSettingsPanel({
                     </div>
                 </div>
 
-                <PlanCards currentPlanId={subscription.planId} authenticated />
+                <PlanCards currentPlanId={subscription.planId} />
             </section>
         </div>
     );

@@ -1,4 +1,7 @@
-import { Link } from "react-router-dom";
+import { showInfo } from "../../utils/toastUtils";
+
+const SUBSCRIPTIONS_UNAVAILABLE_MESSAGE =
+    "Subscriptions are currently unavailable. You can continue using the free workspace while billing is being prepared.";
 
 function UsageLimitBanner({ label, usage, compact = false }) {
     if (!usage || usage.isUnlimited) {
@@ -20,9 +23,13 @@ function UsageLimitBanner({ label, usage, compact = false }) {
                 <span style={{ width: `${usage.percentUsed}%` }} />
             </div>
             {usage.isAtLimit && (
-                <Link to="/pricing" className="secondary-link">
+                <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => showInfo(SUBSCRIPTIONS_UNAVAILABLE_MESSAGE)}
+                >
                     Upgrade
-                </Link>
+                </button>
             )}
         </div>
     );
